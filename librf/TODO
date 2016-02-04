@@ -1,0 +1,5 @@
+weighting classes
+Serialize variable importances when saving random forest model?
+Serialize instance set to disk (options? force to CSV)
+Interface for grabbing split variables/split points from trees
+Interface for obtaining which nodes were used in predicting an instance
