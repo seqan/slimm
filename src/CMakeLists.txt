@@ -89,7 +89,7 @@ seqan_add_app_test (slimm)
 # ----------------------------------------------------------------------------
 
 # Include executable yara_mapper in CTD structure.
-set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} slimm CACHE "")
+# set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} slimm CACHE "")
 
 # ----------------------------------------------------------------------------
 # CPack Install

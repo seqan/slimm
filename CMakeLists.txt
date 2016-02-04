@@ -49,5 +49,5 @@ add_subdirectory(src)
 # Add Tests
 # ----------------------------------------------------------------------------
 
-message (STATUS "${ColourBold}Configuring SLIMM Tests...${ColourReset}")
-add_subdirectory(tests)
+# message (STATUS "${ColourBold}Configuring SLIMM Tests...${ColourReset}")
+# add_subdirectory(tests)
