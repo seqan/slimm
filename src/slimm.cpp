@@ -515,6 +515,34 @@ void getFilesInDirectory(StringList &inputPaths, std::string directory)
 #endif
 } // getFilesInDirectory
 
+// ----------------------------------------------------------------------------
+// Function setDateAndVersion()
+// ----------------------------------------------------------------------------
+   
+void setDateAndVersion(ArgumentParser & parser)
+{
+    setCategory(parser, "Metagenomics");    
+    #if defined(SEQAN_APP_VERSION) && defined(SEQAN_REVISION)
+        setVersion(parser, SEQAN_APP_VERSION " [" SEQAN_REVISION "]");
+    #endif
+    #if defined(SEQAN_DATE)
+        setDate(parser, SEQAN_DATE);
+    #endif
+}
+   
+// ----------------------------------------------------------------------------
+// Function setDescription()
+// ----------------------------------------------------------------------------
+   
+void setDescription(ArgumentParser & parser)
+{
+    addDescription(parser, "Species Level Identification of Microbes from Metagenomes");
+    addDescription(parser, "See \\fIhttp://www.seqan.de/projects/slimm\\fP for more information.");
+    addDescription(parser, "Investigates which microbial species are present from a BAM/SAM alignment file .");
+    addDescription(parser, "(c) Copyright 2014-2017 by Temesgen H. Dadi.");
+}
+           
+           
 // --------------------------------------------------------------------------
 // Function parseCommandLine()
 // --------------------------------------------------------------------------
@@ -522,16 +550,13 @@ void getFilesInDirectory(StringList &inputPaths, std::string directory)
 ArgumentParser::ParseResult
 parseCommandLine(AppOptions & options, int argc, char const ** argv)
 {
+    
     // Setup ArgumentParser.
     ArgumentParser parser("slimm");
-    setShortDescription(parser, "Species Level Identification of Microbes from"
-                        " Metagenomes.");
-    setVersion(parser, "0.1");  
-    setDate(parser, "August 2014");
-
+    setDateAndVersion(parser);
+    setDescription(parser);
     // Define usage line and long description.
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \"\\fIIN\\fP\"");
-    addDescription(parser, "Investigates which microbial species are present from a BAM/SAM alignment file .");
     
     // The input file/directory argument.
     addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "IN"));

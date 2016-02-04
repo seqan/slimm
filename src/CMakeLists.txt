@@ -17,6 +17,11 @@ message (STATUS "Configuring apps/slimm")
 #set (SEQAN_FIND_DEPENDENCIES NONE)
 find_package (SeqAn REQUIRED)
 
+# ----------------------------------------------------------------------------
+# App-Level Configuration
+# ----------------------------------------------------------------------------
+
+set (SEQAN_APP_VERSION "0.1.9")
 
 # ----------------------------------------------------------------------------
 # Change to approprate compiler flags
@@ -46,6 +51,7 @@ add_definitions (${SEQAN_DEFINITIONS})
 # Add definitions set by the build system.
 add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
+add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
