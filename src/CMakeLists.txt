@@ -13,16 +13,6 @@ message (STATUS "Configuring apps/slimm")
 # ----------------------------------------------------------------------------
 # Dependencies
 # ----------------------------------------------------------------------------
-
-# Search C++11.
-find_package(CXX11 REQUIRED)
-
-# Stop here if there is no C++11 with STL.
-if (NOT (CXX11_FOUND AND CXX11_STL_FOUND))
-message (STATUS "  C++11 compiler required to build yara.")
-return ()
-endif (NOT (CXX11_FOUND AND CXX11_STL_FOUND))
-
 # Search SeqAn and select dependencies.
 #set (SEQAN_FIND_DEPENDENCIES NONE)
 find_package (SeqAn REQUIRED)

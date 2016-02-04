@@ -1,19 +1,53 @@
-cmake_minimum_required( VERSION 2.8.2 )
+# ===========================================================================
+#                  SLIMM
+# ===========================================================================
 
-project( FLEXBAR )
+cmake_minimum_required (VERSION 3.0.0)
+string(ASCII 27 Esc)
+set(ColourBold  "${Esc}[1m")
+set(ColourReset "${Esc}[m")
+message (STATUS "${ColourBold}Compiler Detection...${ColourReset}")
 
-set( SEQAN_APP_VERSION "2.7.0" )
+project (SLIMM CXX)
 
-include_directories( ${FLEXBAR_SOURCE_DIR}/include )
-# link_directories( ${FLEXBAR_SOURCE_DIR}/lib )
+# ----------------------------------------------------------------------------
+# Load SeqAn build system
+# ----------------------------------------------------------------------------
 
-# file( MAKE_DIRECTORY build )
+message (STATUS "${ColourBold}Configuring SeqAn...${ColourReset}")
+set (CMAKE_INCLUDE_PATH
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/include
+    ${CMAKE_INCLUDE_PATH})
+set (CMAKE_MODULE_PATH
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/util/cmake/FindTBB
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/util/cmake
+    ${CMAKE_MODULE_PATH})
+include (SeqAnContribs)
 
-set( EXECUTABLE_OUTPUT_PATH ${FLEXBAR_BINARY_DIR} )
-
-add_subdirectory( src )
-
-if( NOT CMAKE_BUILD_TYPE )
-	set( CMAKE_BUILD_TYPE Release CACHE STRING
-		"Choose the type of build: None Debug Release RelWithDebInfo MinSizeRel." FORCE )
+# Build in release mode by default
+if (CMAKE_BUILD_TYPE STREQUAL "")
+    set(CMAKE_BUILD_TYPE "Release")
 endif()
+
+set (SEQAN_USE_SEQAN_BUILD_SYSTEM TRUE CACHE INTERNAL "Use SeqAn build system." FORCE)
+include (SeqAnBuildSystem)
+set (SEQAN_ROOT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/" CACHE INTERNAL "Root source directory." FORCE)
+seqan_build_system_init ()
+seqan_get_repository_info ()
+seqan_setup_library ()
+include (package)
+include (SeqAnCtdSetup)
+
+# ----------------------------------------------------------------------------
+# Add SLIMM targets
+# ----------------------------------------------------------------------------
+
+message (STATUS "${ColourBold}Configuring SLIMM...${ColourReset}")
+add_subdirectory(src)
+
+# ----------------------------------------------------------------------------
+# Add Tests
+# ----------------------------------------------------------------------------
+
+message (STATUS "${ColourBold}Configuring SLIMM Tests...${ColourReset}")
+add_subdirectory(tests)
