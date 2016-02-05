@@ -14,8 +14,31 @@ message (STATUS "Configuring apps/slimm")
 # Dependencies
 # ----------------------------------------------------------------------------
 # Search SeqAn and select dependencies.
-#set (SEQAN_FIND_DEPENDENCIES NONE)
-find_package (SeqAn REQUIRED)
+find_package(ZLIB)
+find_package(BZip2)
+find_package(SeqAn REQUIRED)
+
+if (NOT CXX11_FOUND)
+    message (FATAL_ERROR "  C++11 not found: Not building SLIMM.")
+    return ()
+endif (NOT CXX11_FOUND)
+
+# Do not build without Zlib.
+if (NOT ZLIB_FOUND)
+  message (WARNING "WARNING: Zlib not found! SLIMM will not work compressed files including BAM files")
+endif (NOT ZLIB_FOUND)
+
+# Warn if BZip2 was not found.
+if (NOT BZIP2_FOUND)
+  message (WARNING "WARNING: BZip2 not found. Building SLIMM without support for bzipped input and output.")
+endif (NOT BZIP2_FOUND)
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+  if (491 GREATER _GCC_VERSION)
+    message (FATAL_ERROR "Your GCC version is too old. Minimum version is GCC-4.9.1!")
+    return ()
+  endif(491 GREATER _GCC_VERSION)
+endif(CMAKE_COMPILER_IS_GNUCXX)
 
 # ----------------------------------------------------------------------------
 # App-Level Configuration
