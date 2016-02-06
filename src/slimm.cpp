@@ -77,8 +77,6 @@ typedef std::unordered_map <uint32_t, std::string>          TIntStrMap;
 typedef std::unordered_map <uint32_t, std::set<uint32_t> >  TIntSetMap;
 
 
-
-
 // ----------------------------------------------------------------------------
 // Class Options
 // ----------------------------------------------------------------------------
@@ -284,7 +282,8 @@ bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
 void Read::update(std::vector<uint32_t> const & refList,
             std::vector<ReferenceContig> const & references )
 {
-    if (length(matchPoints) == 0 || length(matchPoints) == 1)
+//    if (length(matchPoints) == 0 || length(matchPoints) == 1)
+    if (length(matchPoints) == 0)
         return;
     else
     {
@@ -733,7 +732,8 @@ inline void analyzeAlignments(Slimm & slimm,
     {
         readRecord(record, bamFile);
         __intSizeQLength readLen = record._l_qseq;
-        if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
+//        if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
+        if (record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
         
         uint32_t relativeBinNo = (record.beginPos + (readLen/2))/binWidth;
@@ -831,8 +831,12 @@ inline void filterAlignments(Slimm & slimm)
     {
         if (slimm.references[i].noOfReads == 0)
             continue;
-        if (slimm.references[i].covPercent > slimm.covCutoff)
+        if (slimm.references[i].covPercent > slimm.covCutoff &&
+            slimm.references[i].noOfReads > 100)
             slimm.validRefs.push_back(i);
+        else
+            slimm.references[i]=ReferenceContig();
+        
     }
 
     std::map<CharString, Read>::iterator it;
@@ -903,51 +907,6 @@ inline void writeToFile(std::string & filePath,
     }
     features_file.close();
 }
-           
-//inline void getReadLCACount(Slimm & slimm,
-//                           TNodes const & nodes)
-//{
-//    std::map<CharString, Read>::iterator it;
-//    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
-//    {
-//        if (it->second.sumRefLengths > 0)
-//        {
-//            std::vector<uint32_t> tIDs;
-//            size_t len = it->second.matchPoints.size();
-//            for (size_t i=0; i < len; ++i)
-//                tIDs.push_back(slimm.matchedRefs[(it->second.matchPoints[i]).first]);
-//            
-//            uint32_t lcaTaxaID = getLCA(tIDs, nodes);
-//            float abundanceWorth = float(slimm.avgQLength)/it->second.sumRefLengths;
-//            // If taxaID already exists
-//            if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
-//            {
-//                ++slimm.taxaID2ReadCount[lcaTaxaID];
-//                slimm.taxaID2Abundance[lcaTaxaID] += abundanceWorth;
-//            }
-//            else   // first time for taxaID
-//            {
-//                slimm.taxaID2ReadCount[lcaTaxaID] = 1;
-//                slimm.taxaID2Abundance[lcaTaxaID] = abundanceWorth;
-//            }
-//            //add the read to all ancestors of the LCA
-//            while (nodes.count(lcaTaxaID) == 1 && lcaTaxaID != 0)
-//            {
-//                lcaTaxaID = (nodes.at(lcaTaxaID)).first;
-//                if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
-//                {
-//                    ++slimm.taxaID2ReadCount[lcaTaxaID];
-//                    slimm.taxaID2Abundance[lcaTaxaID] += abundanceWorth;
-//                }
-//                else
-//                {
-//                    slimm.taxaID2ReadCount[lcaTaxaID] = 1;
-//                    slimm.taxaID2Abundance[lcaTaxaID] = abundanceWorth;
-//                }
-//            }
-//        }
-//    }
-//}
 
 inline void getReadLCACount(Slimm & slimm,
                            TNodes const & nodes)
