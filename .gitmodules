@@ -2,4 +2,4 @@
 	path = include/seqan
 	url = https://github.com/seqan/seqan
 [submodule "seqan"]
-	branch = develop
+	branch = master

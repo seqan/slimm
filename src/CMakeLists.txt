@@ -78,6 +78,7 @@ add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
+                        slimm.h
                         timer.h
                         load_mapping_files.h
                         librf.h)
@@ -117,8 +118,8 @@ seqan_add_app_test (slimm)
 # Setup Common Tool Description for Generic Workflow Nodes
 # ----------------------------------------------------------------------------
 
-# Include executable yara_mapper in CTD structure.
-# set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} slimm CACHE "")
+# Include executable slimm in CTD structure.
+set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} slimm CACHE INTERNAL "")
 
 # ----------------------------------------------------------------------------
 # CPack Install

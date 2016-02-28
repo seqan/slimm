@@ -36,7 +36,6 @@ seqan_build_system_init ()
 seqan_get_repository_info ()
 seqan_setup_library ()
 include (package)
-include (SeqAnCtdSetup)
 
 # ----------------------------------------------------------------------------
 # Add SLIMM targets
@@ -51,3 +50,8 @@ add_subdirectory(src)
 
 # message (STATUS "${ColourBold}Configuring SLIMM Tests...${ColourReset}")
 # add_subdirectory(tests)
+
+set (CMAKE_SOURCE_DIR
+    ${SEQAN_ROOT_SOURCE_DIR})
+include (SeqAnCtdSetup)
+
