@@ -302,11 +302,11 @@ bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
 }
 
 //checks if all the match points are in the same taxaID
-bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
-{
-    std::set<uint32_t> s(taxaIDs.begin(), taxaIDs.end());
-    return isUniq(taxaIDs, s);
-}
+//bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
+//{
+//    std::set<uint32_t> s(taxaIDs.begin(), taxaIDs.end());
+//    return isUniq(taxaIDs, s);
+//}
 
 void Read::update(std::set<uint32_t> const & valRefs,
                   std::vector<ReferenceContig> const & references )
@@ -671,42 +671,33 @@ inline void analyzeAlignments(Slimm & slimm,
     while (!atEnd(bamFile))
     {
         readRecord(record, bamFile);
-        __intSizeQLength readLen = record._l_qseq;
         if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
         
-        uint32_t relativeBinNo = (record.beginPos + (readLen/2))/binWidth;
+        uint32_t relativeBinNo = (record.beginPos + (record._l_qseq/2))/binWidth;
         slimm.references[record.rID].cov.hasNonZeroBins = true;
         
         // maintain read properties under slimm.reads
-//        CharString readName = record.qName;
         std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
             append(readName, ".1");
         else if(hasFlagLast(record))
             append(readName, ".2");
-//        if (slimm.reads.count(readName) == 1)
-//        {
-            slimm.reads[readName].addTarget(record.rID, relativeBinNo);
-//        }
-//        else
-//        {
-//            Read newRead;
-//            newRead.addTarget(record.rID, relativeBinNo);
-//            newRead.len = readLen;
-//            slimm.reads.insert(std::pair<CharString, Read>(readName, newRead));
-//        }
+//      if there is no read with readName this will create one.
+        slimm.reads[readName].addTarget(record.rID, relativeBinNo);
+
         ++slimm.hitCount;
-        std::cout << "processed" << ++slimm.hitCount << " Hits." << std::endl ;
      }
     slimm.noMatchedQueries = length(slimm.reads);
     unsigned totalUniqueReads = 0;
     __intSizeGLength conctQLength = 0;
-//    std::map<CharString, Read>::iterator it;
+
+    std::set<uint32_t> s(slimm.matchedTaxa.begin(), slimm.matchedTaxa.end());
+    
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         conctQLength += it->second.len;
-        if(it->second.isUniq(slimm.matchedTaxa))
+        if(it->second.isUniq(slimm.matchedTaxa, s))
         {
             __int32 rID = it->second.targets[0].rID;
             uint32_t binNo = it->second.targets[0].positions[0];
