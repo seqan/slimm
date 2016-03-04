@@ -251,7 +251,7 @@ public:
     std::vector<ReferenceContig>    references;
     std::vector<uint32_t>           matchedTaxa;
     std::set<uint32_t>              validRefs;
-    std::map<CharString, Read>      reads;
+    std::unordered_map<std::string, Read>      reads;
     __intSizeQLength                avgQLength = 0;
     __intSizeGLength                matchedRefsLen = 0;
     __intSizeMatchCount             noOfRefs = 0;
@@ -679,29 +679,30 @@ inline void analyzeAlignments(Slimm & slimm,
         slimm.references[record.rID].cov.hasNonZeroBins = true;
         
         // maintain read properties under slimm.reads
-        CharString readName = record.qName;
+//        CharString readName = record.qName;
+        std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
             append(readName, ".1");
         else if(hasFlagLast(record))
             append(readName, ".2");
-        if (slimm.reads.count(readName) == 1)
-        {
+//        if (slimm.reads.count(readName) == 1)
+//        {
             slimm.reads[readName].addTarget(record.rID, relativeBinNo);
-        }
-        else
-        {
-            Read newRead;
-            newRead.addTarget(record.rID, relativeBinNo);
-            newRead.len = readLen;
-            slimm.reads.insert(std::pair<CharString, Read>(readName, newRead));
-        }
+//        }
+//        else
+//        {
+//            Read newRead;
+//            newRead.addTarget(record.rID, relativeBinNo);
+//            newRead.len = readLen;
+//            slimm.reads.insert(std::pair<CharString, Read>(readName, newRead));
+//        }
         ++slimm.hitCount;
     }
     slimm.noMatchedQueries = length(slimm.reads);
     unsigned totalUniqueReads = 0;
     __intSizeGLength conctQLength = 0;
-    std::map<CharString, Read>::iterator it;
-    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
+//    std::map<CharString, Read>::iterator it;
+    for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         conctQLength += it->second.len;
         if(it->second.isUniq(slimm.matchedTaxa))
@@ -772,9 +773,9 @@ inline void filterAlignments(Slimm & slimm)
             slimm.validRefs.insert(i);
     }
     
-    std::map<CharString, Read>::iterator it;
+//    std::map<CharString, Read>::iterator it;
     uint32_t totalUniqueReads = 0;
-    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
+    for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         it->second.update(slimm.validRefs, slimm.references);
         if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefs))
@@ -841,8 +842,8 @@ inline void writeToFile(std::string & filePath,
 inline void getReadLCACount(Slimm & slimm,
                             TNodes const & nodes)
 {
-    std::map<CharString, Read>::iterator it;
-    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
+//    std::map<CharString, Read>::iterator it;
+    for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         if (it->second.sumRefLengths > 0)
         {
