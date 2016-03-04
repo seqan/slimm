@@ -685,11 +685,9 @@ inline void analyzeAlignments(Slimm & slimm,
             append(readName, ".2");
 //      if there is no read with readName this will create one.
         slimm.reads[readName].addTarget(record.rID, relativeBinNo);
-
         ++slimm.hitCount;
-     }
-    slimm.noMatchedQueries = length(slimm.reads);
-    unsigned totalUniqueReads = 0;
+    }
+    unsigned totalUniqueReads =0;
     __intSizeGLength conctQLength = 0;
 
     std::set<uint32_t> s(slimm.matchedTaxa.begin(), slimm.matchedTaxa.end());
@@ -726,6 +724,8 @@ inline void analyzeAlignments(Slimm & slimm,
             }
         }
     }
+    slimm.noMatchedQueries = slimm.reads.size();
+
     std::vector<float> covValues;
     slimm.avgQLength = conctQLength/slimm.noMatchedQueries;
     for (uint32_t i=0; i<length(slimm.references); ++i)
@@ -765,7 +765,6 @@ inline void filterAlignments(Slimm & slimm)
             slimm.validRefs.insert(i);
     }
     
-//    std::map<CharString, Read>::iterator it;
     uint32_t totalUniqueReads = 0;
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
