@@ -697,7 +697,8 @@ inline void analyzeAlignments(Slimm & slimm,
 //            slimm.reads.insert(std::pair<CharString, Read>(readName, newRead));
 //        }
         ++slimm.hitCount;
-    }
+        std::cout << "processed" << ++slimm.hitCount << " Hits." << std::endl ;
+     }
     slimm.noMatchedQueries = length(slimm.reads);
     unsigned totalUniqueReads = 0;
     __intSizeGLength conctQLength = 0;
