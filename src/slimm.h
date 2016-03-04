@@ -251,7 +251,7 @@ public:
     std::vector<ReferenceContig>    references;
     std::vector<uint32_t>           matchedTaxa;
     std::set<uint32_t>              validRefs;
-    std::map<CharString, Read>      reads;
+    std::unordered_map<std::string, Read>      reads;
     __intSizeQLength                avgQLength = 0;
     __intSizeGLength                matchedRefsLen = 0;
     __intSizeMatchCount             noOfRefs = 0;
@@ -302,11 +302,11 @@ bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
 }
 
 //checks if all the match points are in the same taxaID
-bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
-{
-    std::set<uint32_t> s(taxaIDs.begin(), taxaIDs.end());
-    return isUniq(taxaIDs, s);
-}
+//bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
+//{
+//    std::set<uint32_t> s(taxaIDs.begin(), taxaIDs.end());
+//    return isUniq(taxaIDs, s);
+//}
 
 void Read::update(std::set<uint32_t> const & valRefs,
                   std::vector<ReferenceContig> const & references )
@@ -671,40 +671,31 @@ inline void analyzeAlignments(Slimm & slimm,
     while (!atEnd(bamFile))
     {
         readRecord(record, bamFile);
-        __intSizeQLength readLen = record._l_qseq;
         if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
         
-        uint32_t relativeBinNo = (record.beginPos + (readLen/2))/binWidth;
+        uint32_t relativeBinNo = (record.beginPos + (record._l_qseq/2))/binWidth;
         slimm.references[record.rID].cov.hasNonZeroBins = true;
         
         // maintain read properties under slimm.reads
-        CharString readName = record.qName;
+        std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
             append(readName, ".1");
         else if(hasFlagLast(record))
             append(readName, ".2");
-        if (slimm.reads.count(readName) == 1)
-        {
-            slimm.reads[readName].addTarget(record.rID, relativeBinNo);
-        }
-        else
-        {
-            Read newRead;
-            newRead.addTarget(record.rID, relativeBinNo);
-            newRead.len = readLen;
-            slimm.reads.insert(std::pair<CharString, Read>(readName, newRead));
-        }
+//      if there is no read with readName this will create one.
+        slimm.reads[readName].addTarget(record.rID, relativeBinNo);
         ++slimm.hitCount;
     }
-    slimm.noMatchedQueries = length(slimm.reads);
-    unsigned totalUniqueReads = 0;
+    unsigned totalUniqueReads =0;
     __intSizeGLength conctQLength = 0;
-    std::map<CharString, Read>::iterator it;
-    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
+
+    std::set<uint32_t> s(slimm.matchedTaxa.begin(), slimm.matchedTaxa.end());
+    
+    for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         conctQLength += it->second.len;
-        if(it->second.isUniq(slimm.matchedTaxa))
+        if(it->second.isUniq(slimm.matchedTaxa, s))
         {
             __int32 rID = it->second.targets[0].rID;
             uint32_t binNo = it->second.targets[0].positions[0];
@@ -733,6 +724,8 @@ inline void analyzeAlignments(Slimm & slimm,
             }
         }
     }
+    slimm.noMatchedQueries = slimm.reads.size();
+
     std::vector<float> covValues;
     slimm.avgQLength = conctQLength/slimm.noMatchedQueries;
     for (uint32_t i=0; i<length(slimm.references); ++i)
@@ -772,9 +765,8 @@ inline void filterAlignments(Slimm & slimm)
             slimm.validRefs.insert(i);
     }
     
-    std::map<CharString, Read>::iterator it;
     uint32_t totalUniqueReads = 0;
-    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
+    for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         it->second.update(slimm.validRefs, slimm.references);
         if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefs))
@@ -841,8 +833,8 @@ inline void writeToFile(std::string & filePath,
 inline void getReadLCACount(Slimm & slimm,
                             TNodes const & nodes)
 {
-    std::map<CharString, Read>::iterator it;
-    for (it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
+//    std::map<CharString, Read>::iterator it;
+    for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         if (it->second.sumRefLengths > 0)
         {
