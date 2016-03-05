@@ -336,7 +336,7 @@ int main(int argc, char const ** argv)
 
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
 
-        std::cout<<"assigning reads to Least Common Ancestor (LCA) " ;
+        std::cout<<"Assigning reads to Least Common Ancestor (LCA) " ;
         getReadLCACount(slimm, nodes);
         
         tsvFile = getTSVFileName(outputFile, "_sp_reported");

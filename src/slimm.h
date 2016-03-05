@@ -140,21 +140,21 @@ class Coverage
 public:
     CharString                  refName;
     uint32_t                    binWidth;
-    bool                        hasNonZeroBins;
     uint32_t                    noOfBins;
+    uint32_t                    noOfNonZeroBins;
     std::vector <uint32_t>      binsHeight;
     
     Coverage():
     binWidth(1000),
-    hasNonZeroBins(false),
-    noOfBins(0)
+    noOfBins(0),
+    noOfNonZeroBins(0)
     {}
     
     Coverage(uint32_t totalLen, uint32_t width)
     {
         binWidth = width;
         noOfBins = totalLen/width + ((totalLen/width)*width < totalLen);
-        hasNonZeroBins = false;
+        noOfNonZeroBins = 0;
         std::vector<uint32_t> tmp (noOfBins, 0);
         binsHeight = tmp;
     }
@@ -163,11 +163,6 @@ public:
 
 class ReferenceContig
 {
-    float               _covPercent      = 0.0;
-    float               _uniqCovPercent  = 0.0;
-    float               _uniqCovPercent2 = 0.0;
-    uint32_t            _covDepth        =   0;
-    
 public:
     CharString          refName;
     uint32_t            length;
@@ -180,10 +175,6 @@ public:
     uint32_t            taxaID;
     
     ReferenceContig():
-    _covPercent(0.0),
-    _uniqCovPercent(0.0),
-    _uniqCovPercent2(0.0),
-    _covDepth(0),
     length(0),
     noOfReads(0),
     noOfUniqReads(0)
@@ -541,28 +532,18 @@ void setDescription(ArgumentParser & parser)
 // --------------------------------------------------------------------------
 inline float getCovPercent(Coverage cov)
 {
-    if(!cov.hasNonZeroBins)
-        return 0.0;
-    int nonZeroCount = 0;
-    for (unsigned int i=0; i<cov.noOfBins; ++i )
-        if (cov.binsHeight[i] > 0) {
-            ++ nonZeroCount;
-        }
-    return float(nonZeroCount)/cov.noOfBins;
+    return float(cov.noOfNonZeroBins)/cov.noOfBins;
 }
 float ReferenceContig::covPercent()
 {
     return getCovPercent(cov);
-//    return (_covPercent != 0)? _covPercent : getCovPercent(cov);
 }
 float ReferenceContig::uniqCovPercent()
 {
     return getCovPercent(uniqCov);
-//    return (_uniqCovPercent != 0)? _uniqCovPercent : getCovPercent(uniqCov);
 }
 float ReferenceContig::uniqCovPercent2()
 {
-//    return (_uniqCovPercent2 != 0)? _uniqCovPercent2 : getCovPercent(uniqCov2);
     return getCovPercent(uniqCov2);
 }
 
@@ -571,7 +552,7 @@ float ReferenceContig::uniqCovPercent2()
 // --------------------------------------------------------------------------
 uint32_t ReferenceContig::covDepth()
 {
-    if(!cov.hasNonZeroBins)
+    if(cov.noOfNonZeroBins == 0)
         return 0.0;
     
     std::vector <uint32_t>::iterator it;
@@ -675,7 +656,7 @@ inline void analyzeAlignments(Slimm & slimm,
             continue;  // Skip these records.
         
         uint32_t relativeBinNo = (record.beginPos + (record._l_qseq/2))/binWidth;
-        slimm.references[record.rID].cov.hasNonZeroBins = true;
+        ++slimm.references[record.rID].cov.noOfNonZeroBins;
         
         // maintain read properties under slimm.reads
         std::string readName = toCString(record.qName);
@@ -685,6 +666,7 @@ inline void analyzeAlignments(Slimm & slimm,
             append(readName, ".2");
 //      if there is no read with readName this will create one.
         slimm.reads[readName].addTarget(record.rID, relativeBinNo);
+        slimm.reads[readName].len = record._l_qseq;
         ++slimm.hitCount;
     }
     unsigned totalUniqueReads =0;
@@ -700,7 +682,7 @@ inline void analyzeAlignments(Slimm & slimm,
             __int32 rID = it->second.targets[0].rID;
             uint32_t binNo = it->second.targets[0].positions[0];
             ++slimm.references[rID].noOfUniqReads;
-            slimm.references[rID].uniqCov.hasNonZeroBins = true;
+            ++slimm.references[rID].uniqCov.noOfNonZeroBins;
             ++slimm.references[rID].uniqCov.binsHeight[binNo];
             ++totalUniqueReads;
             ++slimm.references[rID].noOfReads;
@@ -718,7 +700,7 @@ inline void analyzeAlignments(Slimm & slimm,
                 //only the first match will be counted
                 
                 ++slimm.references[refID].noOfReads;
-                slimm.references[refID].cov.hasNonZeroBins = true;
+                ++slimm.references[refID].cov.noOfNonZeroBins;
                 ++slimm.references[refID].cov.binsHeight[p];
                 it->second.sumRefLengths += slimm.references[refID].length;
             }
@@ -743,7 +725,8 @@ inline void analyzeAlignments(Slimm & slimm,
     float m = mean(covValues);
     float sd = stdDev(covValues, m);
     slimm.covCutoff = exp(m - slimm.options.cutoff *sd);
-    std::cout   << "Mean = " << m
+    std::cout   << std::endl
+                << "Mean = " << m
                 <<" SD = " << sd
                 <<" Cutoff = " << slimm.covCutoff <<std::endl;
     
@@ -775,7 +758,7 @@ inline void filterAlignments(Slimm & slimm)
             __int32 rID = (it->second.targets[0]).rID;
             uint32_t binNo = it->second.targets[0].positions[0];
             
-            slimm.references[rID].uniqCov2.hasNonZeroBins = true;
+            ++slimm.references[rID].uniqCov2.noOfNonZeroBins;
             ++slimm.references[rID].noOfUniqReads2;
             ++slimm.references[rID].uniqCov2.binsHeight[binNo];
             ++totalUniqueReads;
@@ -833,44 +816,48 @@ inline void writeToFile(std::string & filePath,
 inline void getReadLCACount(Slimm & slimm,
                             TNodes const & nodes)
 {
-//    std::map<CharString, Read>::iterator it;
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         if (it->second.sumRefLengths > 0)
         {
-            std::set<uint32_t> tIDs;
-            std::set<uint32_t> rIDs;
+            std::set<uint32_t> taxaIDs;
+            std::set<uint32_t> refIDs;
             
             size_t len = it->second.targets.size();
             for (size_t i=0; i < len; ++i)
             {
                 __int32 refID = (it->second.targets[i]).rID;
-                tIDs.insert(slimm.matchedTaxa[refID]);
-                rIDs.insert(refID);
+                taxaIDs.insert(slimm.matchedTaxa[refID]);
+                refIDs.insert(refID);
             }
-            uint32_t lcaTaxaID = getLCA(tIDs, nodes);
+            uint32_t lcaTaxaID = getLCA(taxaIDs, nodes);
             // If taxaID already exists
             if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
                 ++slimm.taxaID2ReadCount[lcaTaxaID];
             else   // first time for taxaID
                 slimm.taxaID2ReadCount[lcaTaxaID] = 1;
-            //add the contributing children
-            for(auto i : rIDs)
-                slimm.taxaID2Children[lcaTaxaID].insert(i);
-            //add the read to all ancestors of the LCA
-            while (nodes.count(lcaTaxaID) == 1 && lcaTaxaID != 0)
-            {
-                lcaTaxaID = (nodes.at(lcaTaxaID)).first;
-                if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
-                    ++slimm.taxaID2ReadCount[lcaTaxaID];
-                else
-                    slimm.taxaID2ReadCount[lcaTaxaID] = 1;
-                //add the contributing children
-                for(auto i : rIDs)
-                    slimm.taxaID2Children[lcaTaxaID].insert(i);
-            }
+            //add the contributing children references to the taxa
+            slimm.taxaID2Children[lcaTaxaID].insert(refIDs.begin(), refIDs.end());
         }
     }
+    //add the sum of read counts of children all ancestors of the LCA
+    TIntIntMap tID2ReadCountCopy = slimm.taxaID2ReadCount;
+    for (auto t2rc : tID2ReadCountCopy)
+    {
+        uint32_t currentTaxaID = t2rc.first;
+        std::set<uint32_t> refIDs = slimm.taxaID2Children[t2rc.first];
+        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+        {
+            currentTaxaID = (nodes.at(currentTaxaID)).first;
+            if (slimm.taxaID2ReadCount.count(currentTaxaID) == 1)
+                ++slimm.taxaID2ReadCount[currentTaxaID];
+            else
+                slimm.taxaID2ReadCount[currentTaxaID] = 1;
+            //add the contributing children references to the taxa
+            slimm.taxaID2Children[currentTaxaID].insert(refIDs.begin(), refIDs.end());
+        }
+    }
+
 }
 
 inline void writeAbundance(Slimm const & slimm,
@@ -918,7 +905,7 @@ inline void writeAbundance(Slimm const & slimm,
     float m = mean(covValues);
     float sd = stdDev(covValues, m);
     float cutoff = exp(m - slimm.options.cutoff*sd);
-    std::cout<<"Mean = " << m <<" SD = " << sd <<" Cutoff = " << cutoff <<std::endl;
+    std::cout<<std::endl<<"Mean = " << m <<" SD = " << sd <<" Cutoff = " << cutoff <<std::endl;
     
     for (auto tID : cladeCov) {
         float relAbundance = tID.second/totalCov;
