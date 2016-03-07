@@ -655,7 +655,8 @@ inline void analyzeAlignments(Slimm & slimm,
         if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
         
-        uint32_t relativeBinNo = (record.beginPos + (record._l_qseq/2))/binWidth;
+        uint32_t queryLen = length(record.seq);
+        uint32_t relativeBinNo = (record.beginPos + (queryLen/2))/binWidth;
         ++slimm.references[record.rID].cov.noOfNonZeroBins;
         
         // maintain read properties under slimm.reads
@@ -666,7 +667,7 @@ inline void analyzeAlignments(Slimm & slimm,
             append(readName, ".2");
 //      if there is no read with readName this will create one.
         slimm.reads[readName].addTarget(record.rID, relativeBinNo);
-        slimm.reads[readName].len = record._l_qseq;
+        slimm.reads[readName].len = queryLen;
         ++slimm.hitCount;
     }
     unsigned totalUniqueReads =0;
