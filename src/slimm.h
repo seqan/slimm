@@ -846,14 +846,15 @@ inline void getReadLCACount(Slimm & slimm,
     for (auto t2rc : tID2ReadCountCopy)
     {
         uint32_t currentTaxaID = t2rc.first;
+        uint32_t readCount = slimm.taxaID2ReadCount[currentTaxaID];
         std::set<uint32_t> refIDs = slimm.taxaID2Children[t2rc.first];
         while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
         {
             currentTaxaID = (nodes.at(currentTaxaID)).first;
-            if (slimm.taxaID2ReadCount.count(currentTaxaID) == 1)
-                ++slimm.taxaID2ReadCount[currentTaxaID];
+            if (slimm.taxaID2ReadCount.count(currentTaxaID) >= 1)
+                slimm.taxaID2ReadCount[currentTaxaID] += readCount;
             else
-                slimm.taxaID2ReadCount[currentTaxaID] = 1;
+                slimm.taxaID2ReadCount[currentTaxaID] = readCount;
             //add the contributing children references to the taxa
             slimm.taxaID2Children[currentTaxaID].insert(refIDs.begin(), refIDs.end());
         }
