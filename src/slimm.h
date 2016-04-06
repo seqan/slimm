@@ -92,17 +92,29 @@ using namespace seqan;
 inline uint32_t findLCATaxaID(std::set<uint32_t> const & taxaIDs,
                               TNodes const & nodes);
 
+
 struct AppOptions
 {
-    __uint32            cutoff = 3;  // 0 , 1 , 2 , 3.
-    __intSizeBinWidth   binWidth = 100;
-    __intSizeBinWidth   minReads = 100;
+    typedef std::vector<std::string>            TList;
+
+    __uint32            cutoff          = 3;  // 0 , 1 , 2 , 3.
+    __intSizeBinWidth   binWidth        = 100;
+    __intSizeBinWidth   minReads        = 100;
     bool                verbose;
     bool                isDirectory;
+    std::string         rank            = "species";
+    TList               rankList        = {
+                                            "species",
+                                            "genus",
+                                            "family",
+                                            "order",
+                                            "class",
+                                            "phylum",
+                                            "superkingdom"
+                                          };
     CharString          inputPath;
     CharString          outputPrefix;
     CharString          mappingDir;
-    
     
     AppOptions() :
     verbose(false),
@@ -201,11 +213,6 @@ public:
     }
 };
 
-
-enum class TaxnomicRank : uint16_t
-{
-    KINGDOM, PHYLUM , CLASS, ORDER, FAMILY, GENUS, SPECIES
-};
 
 class Read
 {
@@ -490,8 +497,12 @@ std::string getTSVFileName (const std::string& fName)
     result.append(".tsv");
     return result;
 }
-std::string getTSVFileName (const std::string& fName, const std::string& sfx)
+
+std::string getTSVFileName (const std::string& fName, const std::string& rank)
 {
+    std::string sfx = "_sp_reported";
+    if (rank != "species")
+        sfx = "_" + rank + "_reported";
     return (getTSVFileName(fName)).insert(fName.size()-4, sfx);
 }
 
@@ -864,8 +875,7 @@ inline void getReadLCACount(Slimm & slimm,
 
 inline void writeAbundance(Slimm const & slimm,
                            TNodes & nodes, TIntStrMap const & taxaID2name,
-                           std::string const & filePath,
-                           std::string rank)
+                           std::string const & filePath)
 {
     std::ofstream abundunceFile;
     abundunceFile.open(filePath);
@@ -876,7 +886,7 @@ inline void writeAbundance(Slimm const & slimm,
     // calculate the total number of reads matching uniquily at that species level.
     uint32_t noReadsAtRank = 0;
     for (auto tID : slimm.taxaID2ReadCount) {
-        if (rank == nodes[tID.first].second)
+        if (slimm.options.rank == nodes[tID.first].second)
         {
             noReadsAtRank +=  tID.second ;
         }
@@ -889,7 +899,7 @@ inline void writeAbundance(Slimm const & slimm,
     float totalCov = 0.0;
     std::vector<float> covValues;
     for (auto tID : slimm.taxaID2ReadCount) {
-        if (rank == nodes[tID.first].second)
+        if (slimm.options.rank == nodes[tID.first].second)
         {
             uint32_t contributersLength = 0;
             
@@ -935,7 +945,7 @@ inline void writeAbundance(Slimm const & slimm,
     }
     
     // add the remaining  matching reads to unknowns.
-    abundunceFile   << count << "\tunknown_"<<rank<< "(multiple)" << "\t0\t"
+    abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
     << unknownReads << "\t0\t" << unknownAbundance << "\n";
     abundunceFile.close();
     std::cout<< faild_count <<" bellow cutoff ("<< cutoff <<") ...";

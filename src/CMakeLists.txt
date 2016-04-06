@@ -76,6 +76,8 @@ add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 
+seqan_register_apps ()
+
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
                         slimm.h

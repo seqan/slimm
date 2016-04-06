@@ -70,11 +70,17 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
                              "Set the width of a single bin in neuclotides.",
                              ArgParseArgument::INTEGER, "INT"));
     addOption(parser,
-              ArgParseOption("r",
+              ArgParseOption("mr",
                              "min-reads",
                              "Minimum number of matching reads to consider "
                              "a reference present.",
                              ArgParseArgument::INTEGER, "INT"));
+    addOption(parser,
+              ArgParseOption("r", "rank",
+                             "The taxonomic rank of identification", ArgParseOption::STRING));
+    setValidValues(parser, "rank", options.rankList);
+    setDefaultValue(parser, "rank", options.rank);
+    
     
     setDefaultValue(parser, "bin-width", options.binWidth);
     setDefaultValue(parser, "min-reads", options.minReads);
@@ -134,6 +140,9 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
     
     if (isSet(parser, "min-reads"))
         getOptionValue(options.minReads, parser, "min-reads");
+
+    if (isSet(parser, "rank"))
+        getOptionValue(options.rank, parser, "rank");
     
     if (isSet(parser, "cutoff"))
         getOptionValue(options.cutoff, parser, "cutoff");
@@ -339,8 +348,8 @@ int main(int argc, char const ** argv)
         std::cout<<"Assigning reads to Least Common Ancestor (LCA) " ;
         getReadLCACount(slimm, nodes);
         
-        tsvFile = getTSVFileName(outputFile, "_sp_reported");
-        writeAbundance(slimm, nodes, taxaID2name, tsvFile, "species") ;
+        tsvFile = getTSVFileName(outputFile, slimm.options.rank); 
+        writeAbundance(slimm, nodes, taxaID2name, tsvFile) ;
 
         std::cout <<"in "
                   << PerFileStopWatch.lap() << " secs [OK!]" << std::endl;
