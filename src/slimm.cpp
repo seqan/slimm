@@ -220,13 +220,6 @@ int main(int argc, char const ** argv)
     append(names_path, "/names.dmp");
 
     Timer<> MainStopWatch;
-
-    std::cout<<"Loding gi2taxaID mapping ... ";
-    TIntIntMap gi2taxaID;
-    
-    gi2taxaID =  loadMapping<TIntIntMap, CharString>(giMap_path);
-    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" <<std::endl;
-    
     // ============get the taxaID2name mapping ================
     std::cout<<"Loding taxaID2name mapping ... ";
     TIntStrMap taxaID2name;
@@ -291,7 +284,33 @@ int main(int argc, char const ** argv)
         slimm.references.resize(length(refNames));
         uint32_t noOfRefs = length(refNames);
         std::cout<<"computing features of each reference genome ... ";
-
+              
+        // Determine taxa id position
+        uint32_t tIdPos = 0;
+        TIntIntMap gi2taxaID;
+        bool giOnly = false;
+        
+        if (!getTaxaId(tIdPos, refNames[0], "ti"))
+        {
+            if (!getTaxaId(tIdPos, refNames[0], "kraken:taxid"))
+            {
+                std::cout<<"Unable to find taxon id associated with references" << std::endl;
+                std::cout<<"Trying to resolve taxa ids from gi numbers ..." << std::endl;
+                if (getTaxaId(tIdPos, refNames[0], "gi"))
+                {
+                    std::cout<<"gi numbers found!\nLoding gi2taxaID mapping ... ";
+                    gi2taxaID =  loadMapping<TIntIntMap, CharString>(giMap_path);
+                    giOnly = true;
+                }
+                else
+                {
+                    std::cout<<"Unable to find a way to resolve taxon id associated with references" << std::endl;
+                    return 1;
+                }
+                    
+            }
+        }
+        
         for (uint32_t i=0; i<noOfRefs; ++i)
         {
             ReferenceContig current_ref;
@@ -305,7 +324,7 @@ int main(int argc, char const ** argv)
             current_ref.uniqCov2 = cov;
             StringList chunks;
             strSplit(chunks, refNames[i], EqualsChar<'|'>());
-            current_ref.taxaID = atoi(toCString(chunks[1]));
+            current_ref.taxaID = giOnly?gi2taxaID[atoi(toCString(chunks[tIdPos]))]:atoi(toCString(chunks[tIdPos]));
             
             slimm.matchedTaxa.push_back(current_ref.taxaID);
             slimm.references[i] = current_ref;

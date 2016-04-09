@@ -640,6 +640,22 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
     return *(parents.begin());
 }
 
+bool getTaxaId(uint32_t &idPosition, CharString refName, std::string idType)
+{
+    StringList chunks;
+    strSplit(chunks, refName, EqualsChar<'|'>());
+    //check for slimm taxid
+    for (uint32_t i = 0; i <  length(chunks) ; ++i)
+    {
+        if (chunks[i] == idType)
+        {
+            idPosition = i + 1;
+            return true;
+        }
+    }
+    return false;
+}
+
 uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
                 TNodes const & nodes)
 {
