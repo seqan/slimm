@@ -897,7 +897,7 @@ inline void writeAbundance(Slimm const & slimm,
     abundunceFile.open(filePath);
     
     
-    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tCoverage\tRelativeAbundance\n";
+    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\n";
     
     // calculate the total number of reads matching uniquily at that species level.
     uint32_t noReadsAtRank = 0;
@@ -946,6 +946,7 @@ inline void writeAbundance(Slimm const & slimm,
             ++faild_count;
             continue;
         }
+        relAbundance *= 100;
         std::unordered_map <uint32_t, std::string>::const_iterator it2 =
         taxaID2name.find (tID.first);
         seqan::CharString candidateName = "Organism name not found";
@@ -955,7 +956,7 @@ inline void writeAbundance(Slimm const & slimm,
                         << candidateName << "\t"
                         << tID.first << "\t"
                         << slimm.taxaID2ReadCount.at(tID.first) << "\t"
-                        << tID.second << "\t"
+                        // << tID.second << "\t"
                         << relAbundance << "\n";
         ++count;
     }

@@ -284,7 +284,7 @@ int main(int argc, char const ** argv)
         slimm.references.resize(length(refNames));
         uint32_t noOfRefs = length(refNames);
         std::cout<<"computing features of each reference genome ... ";
-              
+        
         // Determine taxa id position
         uint32_t tIdPos = 0;
         TIntIntMap gi2taxaID;
