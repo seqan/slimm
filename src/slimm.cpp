@@ -95,17 +95,7 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
     setMinValue(parser, "cutoff", "0");
     setMaxValue(parser, "cutoff", "3");
     setDefaultValue(parser, "cutoff", options.cutoff);
-    
-//    setDefaultValue(parser, "cov-cutoff", options.covCutoff);
-//
-//    addOption(parser,
-//              ArgParseOption("ac",
-//                            "abundance-cutoff",
-//                             "minimum relative abundance of a taxon",
-//                             ArgParseArgument::DOUBLE, "DOUBLE"));
-//    
-//    setDefaultValue(parser, "abundance-cutoff", options.abundanceCutoff);
- 
+     
     addOption(parser,
               ArgParseOption("d", "directory", "Input is a directory."));
     addOption(parser,

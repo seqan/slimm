@@ -895,10 +895,7 @@ inline void writeAbundance(Slimm const & slimm,
 {
     std::ofstream abundunceFile;
     abundunceFile.open(filePath);
-    
-    
-    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\n";
-    
+        
     // calculate the total number of reads matching uniquily at that species level.
     uint32_t noReadsAtRank = 0;
     for (auto tID : slimm.taxaID2ReadCount) {
@@ -929,6 +926,8 @@ inline void writeAbundance(Slimm const & slimm,
             totalCov += cladeCov[tID.first];
         }
     }
+
+    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\n";
     
     float m = mean(covValues);
     float sd = stdDev(covValues, m);
@@ -963,7 +962,7 @@ inline void writeAbundance(Slimm const & slimm,
     
     // add the remaining  matching reads to unknowns.
     abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
-    << unknownReads << "\t0\t" << unknownAbundance << "\n";
+    << unknownReads << unknownAbundance << "\n";
     abundunceFile.close();
     std::cout<< faild_count <<" bellow cutoff ("<< cutoff <<") ...";
 }
