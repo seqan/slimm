@@ -962,7 +962,7 @@ inline void writeAbundance(Slimm const & slimm,
     
     // add the remaining  matching reads to unknowns.
     abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
-    << unknownReads << unknownAbundance << "\n";
+    << unknownReads << "\t" << unknownAbundance << "\n";
     abundunceFile.close();
     std::cout<< faild_count <<" bellow cutoff ("<< cutoff <<") ...";
 }
