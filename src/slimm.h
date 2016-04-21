@@ -905,27 +905,37 @@ inline void writeAbundance(Slimm const & slimm,
         }
     }
     uint32_t unknownReads = slimm.noMatchedQueries-noReadsAtRank;
-    float unknownAbundance = 0.0;
-    uint32_t count = 1;
+    uint32_t count = 0;
     uint32_t faild_count = 0;
+    uint32_t totalContributersLength = 0;
+    float totalAbundunce = 0.0;
     TIntFloatMap cladeCov;
+    TIntFloatMap cladeAbundance;
     float totalCov = 0.0;
     std::vector<float> covValues;
     for (auto tID : slimm.taxaID2ReadCount) {
         if (slimm.options.rank == nodes[tID.first].second)
         {
-            uint32_t contributersLength = 0;
             
+            uint32_t cLength = 0;
             std::set<uint32_t>::iterator it;
             for (it=slimm.taxaID2Children.at(tID.first).begin();
                  it!=slimm.taxaID2Children.at(tID.first).end(); ++it)
-                contributersLength += slimm.references[*it].length;
-            cladeCov[tID.first] = float(tID.second * slimm.avgQLength)/contributersLength;
+                 cLength += slimm.references[*it].length;
+            cladeCov[tID.first] = float(tID.second * slimm.avgQLength)/cLength;
+            cladeAbundance[tID.first] =  float(tID.second)/(cLength*slimm.noMatchedQueries);
+            totalAbundunce += cladeAbundance[tID.first];
+            totalContributersLength += cLength;
             if(cladeCov[tID.first] > 0.0)
                 covValues.push_back(log(cladeCov[tID.first]));
             totalCov += cladeCov[tID.first];
+            ++count;
         }
     }
+    float averageContributerLength = float(totalContributersLength)/count;
+    float unknownAbundance = float(unknownReads)/(averageContributerLength * slimm.noMatchedQueries);
+    totalAbundunce += unknownAbundance;
+    
 
     abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\n";
     
@@ -935,7 +945,7 @@ inline void writeAbundance(Slimm const & slimm,
     std::cout<<std::endl<<"Mean = " << m <<" SD = " << sd <<" Cutoff = " << cutoff <<std::endl;
     
     for (auto tID : cladeCov) {
-        float relAbundance = tID.second/totalCov;
+        float relAbundance = cladeAbundance[tID.first]/totalAbundunce;
         // If the abundance is lower than a threshold do not report it
         // Put the reads under the unkown
         if (relAbundance < 0.0)
