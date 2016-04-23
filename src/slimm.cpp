@@ -349,8 +349,7 @@ int main(int argc, char const ** argv)
             outputFile.append(getFilename(toCString(value(fileIt))));
         }
         std::string tsvFile = getTSVFileName(outputFile);
-        writeToFile(tsvFile, slimm.references,
-                    taxaID2name);
+        writeToFile(tsvFile, slimm.references, taxaID2name);
 
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
 
