@@ -149,28 +149,34 @@ public:
 
 class Coverage
 {
+    int32_t _noOfNonZeroBins = -1;
 public:
     CharString                  refName;
     uint32_t                    binWidth;
     uint32_t                    noOfBins;
-    uint32_t                    noOfNonZeroBins;
     std::vector <uint32_t>      binsHeight;
     
     Coverage():
     binWidth(1000),
-    noOfBins(0),
-    noOfNonZeroBins(0)
+    noOfBins(0)
     {}
     
     Coverage(uint32_t totalLen, uint32_t width)
     {
         binWidth = width;
         noOfBins = totalLen/width + ((totalLen/width)*width < totalLen);
-        noOfNonZeroBins = 0;
         std::vector<uint32_t> tmp (noOfBins, 0);
         binsHeight = tmp;
     }
-    
+    uint32_t noOfNonZeroBins()
+    {
+        if (_noOfNonZeroBins == -1)
+        {
+            _noOfNonZeroBins = (noOfBins - std::count (binsHeight.begin(), binsHeight.end(), 0));
+        }
+        return _noOfNonZeroBins;
+    }
+
 };
 
 class ReferenceContig
@@ -548,7 +554,7 @@ void setDescription(ArgumentParser & parser)
 // --------------------------------------------------------------------------
 inline float getCovPercent(Coverage cov)
 {
-    return float(cov.noOfNonZeroBins)/cov.noOfBins;
+    return float(cov.noOfNonZeroBins())/cov.noOfBins;
 }
 float ReferenceContig::covPercent()
 {
@@ -568,7 +574,7 @@ float ReferenceContig::uniqCovPercent2()
 // --------------------------------------------------------------------------
 uint32_t ReferenceContig::covDepth()
 {
-    if(cov.noOfNonZeroBins == 0)
+    if(cov.noOfNonZeroBins() == 0)
         return 0.0;
     
     std::vector <uint32_t>::iterator it;
@@ -689,8 +695,6 @@ inline void analyzeAlignments(Slimm & slimm,
         
         uint32_t queryLen = length(record.seq);
         uint32_t relativeBinNo = (record.beginPos + (queryLen/2))/binWidth;
-        ++slimm.references[record.rID].cov.noOfNonZeroBins;
-        
         // maintain read properties under slimm.reads
         std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
@@ -714,7 +718,6 @@ inline void analyzeAlignments(Slimm & slimm,
             __int32 rID = it->second.targets[0].rID;
             uint32_t binNo = it->second.targets[0].positions[0];
             ++slimm.references[rID].noOfUniqReads;
-            ++slimm.references[rID].uniqCov.noOfNonZeroBins;
             ++slimm.references[rID].uniqCov.binsHeight[binNo];
             ++slimm.noUniqlyMatchedQueries;
             ++slimm.references[rID].noOfReads;
@@ -732,7 +735,6 @@ inline void analyzeAlignments(Slimm & slimm,
                 //only the first match will be counted
                 
                 ++slimm.references[refID].noOfReads;
-                ++slimm.references[refID].cov.noOfNonZeroBins;
                 ++slimm.references[refID].cov.binsHeight[p];
                 it->second.sumRefLengths += slimm.references[refID].length;
             }
@@ -819,7 +821,6 @@ inline void filterAlignments(Slimm & slimm)
             __int32 rID = (it->second.targets[0]).rID;
             uint32_t binNo = it->second.targets[0].positions[0];
             
-            ++slimm.references[rID].uniqCov2.noOfNonZeroBins;
             ++slimm.references[rID].noOfUniqReads2;
             ++slimm.references[rID].uniqCov2.binsHeight[binNo];
             ++slimm.noUniqlyMatchedQueries;
