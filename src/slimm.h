@@ -97,7 +97,7 @@ struct AppOptions
 {
     typedef std::vector<std::string>            TList;
 
-    __uint32            cutoff          = 3;  // 0 , 1 , 2 , 3.
+    __uint32            cutoff          = 2;  // 0 , 1 , 2 , 3.
     __intSizeBinWidth   binWidth        = 100;
     __intSizeBinWidth   minReads        = 100;
     bool                verbose;
@@ -755,7 +755,7 @@ inline void analyzeAlignments(Slimm & slimm,
             ++slimm.noOfRefs;
             slimm.matchedRefsLen += slimm.references[i].length;
             if(slimm.references[i].covPercent() > 0.0)
-                covValues.push_back(log(slimm.references[i].covPercent()));
+                covValues.push_back(slimm.references[i].covPercent());
             else
                 continue;
             slimm.references[i].relAbundance = float(slimm.references[i].noOfReads)/slimm.noMatchedQueries;
@@ -788,7 +788,7 @@ inline void analyzeAlignments(Slimm & slimm,
     }
     float m = mean(covValues);
     float sd = stdDev(covValues, m);
-    slimm.covCutoff = exp(m - slimm.options.cutoff *sd);
+    std::cout << slimm.options.cutoff <<std::endl;
     std::cout   << std::endl
                 << "Mean = " << m
                 <<" SD = " << sd
@@ -1013,7 +1013,7 @@ inline void writeAbundance(Slimm const & slimm,
             totalAbundunce += cladeAbundance[tID.first];
             totalContributersLength += cLength;
             if(cladeCov[tID.first] > 0.0)
-                covValues.push_back(log(cladeCov[tID.first]));
+                covValues.push_back(cladeCov[tID.first]);
             totalCov += cladeCov[tID.first];
             ++count;
         }
@@ -1027,7 +1027,7 @@ inline void writeAbundance(Slimm const & slimm,
     
     float m = mean(covValues);
     float sd = stdDev(covValues, m);
-    float cutoff = exp(m - slimm.options.cutoff*sd);
+    float cutoff = m - slimm.options.cutoff*sd;
     std::cout<<std::endl<<"Mean = " << m <<" SD = " << sd <<" Cutoff = " << cutoff <<std::endl;
     
     for (auto tID : cladeCov) {
@@ -1035,7 +1035,7 @@ inline void writeAbundance(Slimm const & slimm,
         float relAbundance2 = slimm.taxaID2Abundance.at(tID.first);
         // If the abundance is lower than a threshold do not report it
         // Put the reads under the unkown
-        if (relAbundance < 0.0)
+        if (relAbundance < 0.0 || tID.second < cutoff)
         {
             unknownReads += totalCov;
             unknownAbundance += relAbundance;
