@@ -300,6 +300,21 @@ int main(int argc, char const ** argv)
                     
             }
         }
+        BamAlignmentRecord record;
+        if (slimm.options.binWidth == 0) //if binWidth is not given use avg read length
+        {
+            uint32_t count = 0, totlaLength = 0;
+            while (!atEnd(bamFile) && count < 100)
+            {
+                readRecord(record, bamFile);
+                totlaLength += length(record.seq);
+                ++count;
+            }
+            slimm.options.binWidth = totlaLength/count;
+            close(bamFile);
+            open(bamFile, toCString(value(fileIt)));
+            readHeader(header, bamFile);
+        }
         
         for (uint32_t i=0; i<noOfRefs; ++i)
         {
@@ -308,7 +323,7 @@ int main(int argc, char const ** argv)
             current_ref.length = refLengths[i];
             
             // Intialize coverages based on the length of a refSeq
-            Coverage cov(current_ref.length, options.binWidth);
+            Coverage cov(current_ref.length, slimm.options.binWidth);
             current_ref.cov = cov;
             current_ref.uniqCov = cov;
             current_ref.uniqCov2 = cov;
@@ -323,7 +338,7 @@ int main(int argc, char const ** argv)
         
         
         std::cout<<"Analysing alignments, reads and references ...";
-        analyzeAlignments(slimm, bamFile, options.binWidth);
+        analyzeAlignments(slimm, bamFile);
         totalRecCount += slimm.noMatchedQueries;
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
         
@@ -336,7 +351,7 @@ int main(int argc, char const ** argv)
         filterAlignments(slimm);
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
 
-        std::cout   << length(slimm.validRefs)
+        std::cout   << length(slimm.validRefTaxonIDs)
                     <<" passed the threshould coverage."<< std::endl;
     
         std::cout<<"Writing features to a file ..." ;

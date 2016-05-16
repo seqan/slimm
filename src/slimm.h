@@ -98,7 +98,7 @@ struct AppOptions
     typedef std::vector<std::string>            TList;
 
     __uint32            cutoff          = 2;  // 0 , 1 , 2 , 3.
-    __intSizeBinWidth   binWidth        = 100;
+    __intSizeBinWidth   binWidth        = 0;
     __intSizeBinWidth   minReads        = 100;
     bool                verbose;
     bool                isDirectory;
@@ -199,12 +199,13 @@ public:
     ReferenceContig():
     length(0),
     noOfReads(0),
-    noOfUniqReads(0)
+    noOfUniqReads(0),
+    noOfUniqReads2(0)
     {}
     
     float               uniqCovPercent();
     float               uniqCovPercent2();
-    uint32_t            covDepth();
+    float               covDepth();
     float               covPercent();
 };
 
@@ -243,7 +244,8 @@ public:
     //checks if all the match points are in the same taxaID
     bool isUniq(std::vector<uint32_t> const & taxaIDs);
     
-    void update(std::set<uint32_t> const & valRefs,
+    void update(std::vector<uint32_t> const & taxaIDs,
+                std::set<uint32_t> const & valtaxaIDs,
                 std::vector<ReferenceContig> const & references );
     
     void addTarget(int32_t rID, uint32_t binNo);
@@ -258,12 +260,13 @@ class Slimm
 public:
     std::vector<ReferenceContig>    references;
     std::vector<uint32_t>           matchedTaxa;
-    std::set<uint32_t>              validRefs;
+    std::set<uint32_t>              validRefTaxonIDs;
     std::unordered_map<std::string, Read>      reads;
     __intSizeQLength                avgQLength = 0;
     __intSizeGLength                matchedRefsLen = 0;
     __intSizeMatchCount             noOfRefs = 0;
     __intSizeQCount                 hitCount = 0;
+    __intSizeQCount                 uniqHitCount = 0;
     __intSizeQCount                 noMatchedQueries = 0;
     __intSizeQCount                 noUniqlyMatchedQueries = 0;
     
@@ -288,7 +291,7 @@ bool Read::isUniq()
 // checks if all the match points are in the same sequence
 // ignoring sequences that are not in refList
 bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
-                  std::set<uint32_t> const & valRefs)
+                  std::set<uint32_t> const & valtaxaIDs)
 {
     size_t len = targets.size();
     if (len == 0 || len == 1)
@@ -299,7 +302,7 @@ bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
         for (size_t i=0; i < len; ++i)
         {
             uint32_t refID = taxaIDs[(targets[i]).rID];
-            if(valRefs.find(refID) != valRefs.end())
+            if(valtaxaIDs.find(refID) != valtaxaIDs.end())
                 refTaxaIDs.insert(refID);
         }
         if (refTaxaIDs.size() > 1)
@@ -310,14 +313,9 @@ bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
     return true;
 }
 
-//checks if all the match points are in the same taxaID
-//bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
-//{
-//    std::set<uint32_t> s(taxaIDs.begin(), taxaIDs.end());
-//    return isUniq(taxaIDs, s);
-//}
 
-void Read::update(std::set<uint32_t> const & valRefs,
+void Read::update(std::vector<uint32_t> const & taxaIDs,
+                  std::set<uint32_t> const & valtaxaIDs,
                   std::vector<ReferenceContig> const & references )
 {
     size_t len = targets.size();
@@ -328,7 +326,8 @@ void Read::update(std::set<uint32_t> const & valRefs,
         std::vector<TargetRef> newTargets;
         for (size_t i=0; i < len; ++i)
         {
-            if(valRefs.find((targets[i]).rID) != valRefs.end())
+            uint32_t refID = taxaIDs[(targets[i]).rID];
+            if(valtaxaIDs.find(refID) != valtaxaIDs.end())
                 newTargets.push_back(targets[i]);
             else
                 sumRefLengths -= references[(targets[i]).rID].length;
@@ -434,7 +433,7 @@ T median(std::vector<T> &v)
 
 template <typename T>
 T mean(std::vector<T> &v) {
-    T vSum = std::accumulate(v.begin(), v.end(), 0.0);
+    T vSum = std::accumulate(v.begin(), v.end(), (T)0);
     return vSum/v.size();
 }
 
@@ -572,7 +571,48 @@ float ReferenceContig::uniqCovPercent2()
 // --------------------------------------------------------------------------
 // Function getCovDepth()
 // --------------------------------------------------------------------------
-uint32_t ReferenceContig::covDepth()
+//uint32_t ReferenceContig::covDepth()
+//{
+//    if(cov.noOfNonZeroBins() == 0)
+//        return 0.0;
+//    
+//    std::vector <uint32_t>::iterator it;
+//    
+//    //copy the coverage height.
+//    std::vector <uint32_t>  bHeights = cov.binsHeight;
+//    std::vector <uint32_t>  bFrequentHeights;
+//    std::sort(bHeights.begin(), bHeights.end());
+//    
+//    uint32_t previousCount=1;
+//    uint32_t currentCount=1;
+//    
+//    for (unsigned int i=1; i<cov.noOfBins; ++i )
+//    {
+//        if (bHeights[i] == bHeights[i-1])
+//        {
+//            ++ currentCount;
+//        }
+//        else
+//        {
+//            if (currentCount==previousCount)
+//            {
+//                bFrequentHeights.push_back(bHeights[i-1]);
+//            }
+//            else if(currentCount > previousCount)
+//            {
+//                bFrequentHeights.empty();
+//                bFrequentHeights.push_back(bHeights[i-1]);
+//                previousCount = currentCount;
+//                
+//            }
+//            currentCount = 1;
+//        }
+//    }
+//    float sum = std::accumulate(bFrequentHeights.begin(),
+//                                bFrequentHeights.end(), 0.0);
+//    return sum / bFrequentHeights.size();
+//}
+float ReferenceContig::covDepth()
 {
     if(cov.noOfNonZeroBins() == 0)
         return 0.0;
@@ -580,38 +620,13 @@ uint32_t ReferenceContig::covDepth()
     std::vector <uint32_t>::iterator it;
     
     //copy the coverage height.
-    std::vector <uint32_t>  bHeights = cov.binsHeight;
-    std::vector <uint32_t>  bFrequentHeights;
-    std::sort(bHeights.begin(), bHeights.end());
+    std::vector <float>  bHeights;
     
-    uint32_t previousCount=1;
-    uint32_t currentCount=1;
-    
-    for (unsigned int i=1; i<cov.noOfBins; ++i )
+    for (unsigned int i=0; i<cov.noOfBins; ++i )
     {
-        if (bHeights[i] == bHeights[i-1])
-        {
-            ++ currentCount;
-        }
-        else
-        {
-            if (currentCount==previousCount)
-            {
-                bFrequentHeights.push_back(bHeights[i-1]);
-            }
-            else if(currentCount > previousCount)
-            {
-                bFrequentHeights.empty();
-                bFrequentHeights.push_back(bHeights[i-1]);
-                previousCount = currentCount;
-                
-            }
-            currentCount = 1;
-        }
+        bHeights.push_back(float(cov.binsHeight[i]));
     }
-    float sum = std::accumulate(bFrequentHeights.begin(),
-                                bFrequentHeights.end(), 0.0);
-    return sum / bFrequentHeights.size();
+    return mean(bHeights);
 }
 uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
                 std::set<uint32_t> const & valTaxaIDs,
@@ -682,8 +697,7 @@ uint32_t getLCA(std::vector<uint32_t> const & taxaIDs,
 
 
 inline void analyzeAlignments(Slimm & slimm,
-                              BamFileIn & bamFile,
-                              __intSizeBinWidth const & binWidth)
+                              BamFileIn & bamFile)
 {
 
     BamAlignmentRecord record;
@@ -694,7 +708,7 @@ inline void analyzeAlignments(Slimm & slimm,
             continue;  // Skip these records.
         
         uint32_t queryLen = length(record.seq);
-        uint32_t relativeBinNo = (record.beginPos + (queryLen/2))/binWidth;
+        uint32_t relativeBinNo = (record.beginPos + (queryLen/2))/slimm.options.binWidth;
         // maintain read properties under slimm.reads
         std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
@@ -706,22 +720,43 @@ inline void analyzeAlignments(Slimm & slimm,
         slimm.reads[readName].len = queryLen;
         ++slimm.hitCount;
     }
+    
+    
+    
     __intSizeGLength concatQLength = 0;
 
-    std::set<uint32_t> s(slimm.matchedTaxa.begin(), slimm.matchedTaxa.end());
+    std::set<uint32_t> taxaIDs(slimm.matchedTaxa.begin(), slimm.matchedTaxa.end());
     
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         concatQLength += it->second.len;
-        if(it->second.isUniq(slimm.matchedTaxa, s))
+        if(it->second.isUniq(slimm.matchedTaxa, taxaIDs))
         {
             __int32 rID = it->second.targets[0].rID;
-            uint32_t binNo = it->second.targets[0].positions[0];
-            ++slimm.references[rID].noOfUniqReads;
-            ++slimm.references[rID].uniqCov.binsHeight[binNo];
-            ++slimm.noUniqlyMatchedQueries;
-            ++slimm.references[rID].noOfReads;
             it->second.sumRefLengths += slimm.references[record.rID].length;
+            ++slimm.noUniqlyMatchedQueries;
+
+            // ***** all of the matches in multiple pos will be counted *****
+            size_t pos_count = (it->second.targets[0]).positions.size();
+            slimm.references[rID].noOfReads += pos_count;
+            slimm.references[rID].noOfUniqReads += pos_count;
+            slimm.uniqHitCount += pos_count;
+            it->second.sumRefLengths += slimm.references[rID].length;
+            for (size_t j=0; j < pos_count; ++j)
+            {
+                uint32_t binNo = (it->second.targets[0]).positions[j];
+                ++slimm.references[rID].cov.binsHeight[binNo];
+                ++slimm.references[rID].uniqCov.binsHeight[binNo];
+            }
+            // *****                                                    *****
+
+            
+//          //only the first match will be counted
+//            uint32_t binNo = it->second.targets[0].positions[0];
+//            ++slimm.references[rID].noOfUniqReads;
+//            ++slimm.references[rID].cov.binsHeight[binNo];
+//            ++slimm.references[rID].uniqCov.binsHeight[binNo];
+//            ++slimm.references[rID].noOfReads;
         }
         else
         {
@@ -729,14 +764,25 @@ inline void analyzeAlignments(Slimm & slimm,
             for (size_t i=0; i < len; ++i)
             {
 
-                __int32 refID = (it->second.targets[i]).rID;
-                uint32_t p = (it->second.targets[i]).positions[0];
+                __int32 rID = (it->second.targets[i]).rID;
+                it->second.sumRefLengths += slimm.references[rID].length;
+
+                // ***** all of the matches in multiple pos will be counted *****
+                size_t pos_count = (it->second.targets[i]).positions.size();
+                slimm.references[rID].noOfReads += pos_count;
+                for (size_t j=0; j < pos_count; ++j)
+                {
+                    uint32_t binNo = (it->second.targets[i]).positions[j];
+                    ++slimm.references[rID].cov.binsHeight[binNo];
+                }
+                // *****                                                    *****
                 
-                //only the first match will be counted
                 
-                ++slimm.references[refID].noOfReads;
-                ++slimm.references[refID].cov.binsHeight[p];
-                it->second.sumRefLengths += slimm.references[refID].length;
+                
+//                //only the first match will be counted
+//                uint32_t binNo = (it->second.targets[i]).positions[0];
+//                ++slimm.references[rID].noOfReads;
+//                ++slimm.references[rID].cov.binsHeight[binNo];
             }
         }
     }
@@ -744,10 +790,7 @@ inline void analyzeAlignments(Slimm & slimm,
 
     std::vector<float> covValues;
     slimm.avgQLength = concatQLength/slimm.noMatchedQueries;
-    float totalRelAbundance = 0.0;
-    float totalUniqRelAbundance = 0.0;
-    float totalRelAbundanceNormalized = 0.0;
-    float totalUniqRelAbundanceNormalized = 0.0;
+    float totalAbNormalized = 0.0;
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
         if (slimm.references[i].noOfReads > 0)
@@ -758,34 +801,47 @@ inline void analyzeAlignments(Slimm & slimm,
                 covValues.push_back(slimm.references[i].covPercent());
             else
                 continue;
-            slimm.references[i].relAbundance = float(slimm.references[i].noOfReads)/slimm.noMatchedQueries;
-            totalRelAbundance += slimm.references[i].relAbundance;
-            totalRelAbundanceNormalized += slimm.references[i].relAbundance/slimm.references[i].length;
-            slimm.references[i].relAbundanceUniq = float(slimm.references[i].noOfUniqReads)/slimm.noUniqlyMatchedQueries;
-            totalUniqRelAbundance += slimm.references[i].relAbundanceUniq;
-            totalUniqRelAbundanceNormalized += slimm.references[i].relAbundanceUniq/slimm.references[i].length;
+            slimm.references[i].relAbundance = float(slimm.references[i].noOfReads * 100)/slimm.hitCount;
+            totalAbNormalized += slimm.references[i].relAbundance/slimm.references[i].length;
         }
         else
         {
             slimm.references[i].relAbundance = 0.0;
             slimm.references[i].relAbundanceNormalized = 0.0;
-            slimm.references[i].relAbundanceUniq = 0.0;
-            slimm.references[i].relAbundanceUniqNormalized = 0.0;
         }
     }
-    float unknownsRelAbundance = float(slimm.noMatchedQueries - slimm.noUniqlyMatchedQueries)/slimm.noMatchedQueries;
-    totalUniqRelAbundance += unknownsRelAbundance;
-    unknownsRelAbundance = unknownsRelAbundance/totalUniqRelAbundance;
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
         if (slimm.references[i].noOfReads > 0)
         {
-            slimm.references[i].relAbundance = slimm.references[i].relAbundance / totalRelAbundance;
-            slimm.references[i].relAbundanceUniq = slimm.references[i].relAbundanceUniq / totalUniqRelAbundance;
-            slimm.references[i].relAbundanceNormalized = slimm.references[i].relAbundance / (totalRelAbundanceNormalized*slimm.references[i].length);
-            slimm.references[i].relAbundanceUniqNormalized = slimm.references[i].relAbundanceUniq / (totalUniqRelAbundanceNormalized*slimm.references[i].length);
+            slimm.references[i].relAbundanceNormalized = (slimm.references[i].relAbundance * 100) / (totalAbNormalized*slimm.references[i].length);
         }
     }
+    
+    totalAbNormalized = 0.0;
+    for (uint32_t i=0; i<length(slimm.references); ++i)
+    {
+        if (slimm.references[i].noOfUniqReads > 0)
+        {
+            slimm.references[i].relAbundanceUniq = float(slimm.references[i].noOfUniqReads * 100)/slimm.uniqHitCount;
+            totalAbNormalized += slimm.references[i].relAbundanceUniq/slimm.references[i].length;
+        }
+        else
+        {
+            slimm.references[i].relAbundanceUniq = 0.0;
+            slimm.references[i].relAbundanceUniqNormalized = 0.0;
+        }
+    }
+    for (uint32_t i=0; i<length(slimm.references); ++i)
+    {
+        if (slimm.references[i].noOfUniqReads > 0)
+        {
+            slimm.references[i].relAbundanceUniqNormalized = (slimm.references[i].relAbundanceUniq * 100) / (totalAbNormalized*slimm.references[i].length);
+        }
+        
+    }
+    
+    
     float m = mean(covValues);
     float sd = stdDev(covValues, m);
     std::cout << slimm.options.cutoff <<std::endl;
@@ -807,48 +863,59 @@ inline void filterAlignments(Slimm & slimm)
     {
         if (slimm.references[i].noOfReads == 0)
             continue;
+        slimm.references[i].noOfUniqReads2 = 0;
         if (slimm.references[i].covPercent() > slimm.covCutoff &&
             slimm.references[i].noOfReads > slimm.options.minReads)
-            slimm.validRefs.insert(i);
+            slimm.validRefTaxonIDs.insert(slimm.matchedTaxa[i]);
     }
     
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
-        it->second.update(slimm.validRefs, slimm.references);
-        if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefs))
+        it->second.update(slimm.matchedTaxa, slimm.validRefTaxonIDs, slimm.references);
+        if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs))
         {
-
             __int32 rID = (it->second.targets[0]).rID;
-            uint32_t binNo = it->second.targets[0].positions[0];
+            // ***** all of the matches in multiple pos will be counted *****
+            size_t pos_count = (it->second.targets[0]).positions.size();
+            slimm.references[rID].noOfUniqReads2 += pos_count;
+            for (size_t j=0; j < pos_count; ++j)
+            {
+                uint32_t binNo = (it->second.targets[0]).positions[j];
+                ++slimm.references[rID].uniqCov2.binsHeight[binNo];
+            }
+            // *****                                                    *****
             
-            ++slimm.references[rID].noOfUniqReads2;
-            ++slimm.references[rID].uniqCov2.binsHeight[binNo];
-            ++slimm.noUniqlyMatchedQueries;
+            
+//          //only the first match will be counted
+//            uint32_t binNo = it->second.targets[0].positions[0];
+//            ++slimm.references[rID].noOfUniqReads2;
+//            ++slimm.references[rID].uniqCov2.binsHeight[binNo];
+//            ++slimm.noUniqlyMatchedQueries;
         }
     }
-    
-    float totalUniqRelAbundance = 0.0;
-    float totalUniqRelAbundanceNormalized = 0.0;
+    float totalAbNormalized = 0.0;
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
         if (slimm.references[i].noOfUniqReads2 > 0)
         {
-            slimm.references[i].relAbundanceUniq = float(slimm.references[i].noOfUniqReads2)/slimm.noUniqlyMatchedQueries;
-            totalUniqRelAbundance += slimm.references[i].relAbundanceUniq;
-            totalUniqRelAbundanceNormalized += slimm.references[i].relAbundanceUniq/slimm.references[i].length;
+            slimm.references[i].relAbundanceUniq = float(slimm.references[i].noOfUniqReads2 * 100)/slimm.uniqHitCount;
+            totalAbNormalized += slimm.references[i].relAbundanceUniq/slimm.references[i].length;
+        }
+        else
+        {
+            slimm.references[i].relAbundanceUniq = 0.0;
+            slimm.references[i].relAbundanceUniqNormalized = 0.0;
         }
     }
-    float unknownsRelAbundance = float(slimm.noMatchedQueries - slimm.noUniqlyMatchedQueries)/slimm.noMatchedQueries;
-    totalUniqRelAbundance += unknownsRelAbundance;
-    unknownsRelAbundance = unknownsRelAbundance/totalUniqRelAbundance;
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
         if (slimm.references[i].noOfUniqReads2 > 0)
         {
-            slimm.references[i].relAbundanceUniq = slimm.references[i].relAbundanceUniq / totalUniqRelAbundance;
-            slimm.references[i].relAbundanceUniqNormalized = slimm.references[i].relAbundanceUniq / (totalUniqRelAbundanceNormalized*slimm.references[i].length);
-            slimm.taxaID2Abundance[slimm.references[i].taxaID] = slimm.references[i].relAbundanceUniqNormalized ;
+            slimm.references[i].relAbundanceUniqNormalized = (slimm.references[i].relAbundanceUniq * 100) / (totalAbNormalized*slimm.references[i].length);
+            uint32_t currentTaxaID = slimm.references[i].taxaID;
+            slimm.taxaID2Abundance[currentTaxaID] = slimm.references[i].relAbundanceUniqNormalized;
         }
+
     }
     
     std::cout << "Total number of uniquily matching reads "
@@ -885,6 +952,7 @@ inline void writeToFile(std::string & filePath,
     {
         current ++;
         ReferenceContig current_ref = refList[i];
+        if (current_ref.noOfReads > 0){
         CharString candidateName = current_ref.refName;
         TIntStrMap::const_iterator it = taxaID2name.find(current_ref.taxaID);
         if (it != taxaID2name.end())
@@ -905,6 +973,7 @@ inline void writeToFile(std::string & filePath,
         << "NA"<< "\t"
         << current_ref.uniqCovPercent() << "\t"
         << current_ref.uniqCovPercent2() << "\n";
+        }
     }
     features_file.close();
 }
@@ -914,11 +983,15 @@ inline void getReadLCACount(Slimm & slimm,
 {
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
-        if (it->second.sumRefLengths > 0)
+        uint32_t lcaTaxaID = 0;
+        std::set<uint32_t> refIDs = {};
+        if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs))
+        {
+            lcaTaxaID = slimm.matchedTaxa[it->second.targets[0].rID];
+        }
+        else
         {
             std::set<uint32_t> taxaIDs;
-            std::set<uint32_t> refIDs;
-            
             size_t len = it->second.targets.size();
             for (size_t i=0; i < len; ++i)
             {
@@ -926,22 +999,23 @@ inline void getReadLCACount(Slimm & slimm,
                 taxaIDs.insert(slimm.matchedTaxa[refID]);
                 refIDs.insert(refID);
             }
-            uint32_t lcaTaxaID = getLCA(taxaIDs, nodes);
-            // If taxaID already exists
-            if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
-                ++slimm.taxaID2ReadCount[lcaTaxaID];
-            else   // first time for taxaID
-                slimm.taxaID2ReadCount[lcaTaxaID] = 1;
-            //add the contributing children references to the taxa
-            slimm.taxaID2Children[lcaTaxaID].insert(refIDs.begin(), refIDs.end());
+            lcaTaxaID = getLCA(taxaIDs, nodes);
         }
+        // If taxaID already exists
+        if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
+            ++slimm.taxaID2ReadCount[lcaTaxaID];
+        else   // first time for taxaID
+            slimm.taxaID2ReadCount[lcaTaxaID] = 1;
+        //add the contributing children references to the taxa
+        slimm.taxaID2Children[lcaTaxaID].insert(refIDs.begin(), refIDs.end());
+        
     }
     //add the sum of read counts of children all ancestors of the LCA
     TIntIntMap tID2ReadCountCopy = slimm.taxaID2ReadCount;
     for (auto t2rc : tID2ReadCountCopy)
     {
         uint32_t currentTaxaID = t2rc.first;
-        uint32_t readCount = slimm.taxaID2ReadCount[currentTaxaID];
+        uint32_t readCount = tID2ReadCountCopy[currentTaxaID];
         std::set<uint32_t> refIDs = slimm.taxaID2Children[currentTaxaID];
         while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
         {
@@ -954,18 +1028,21 @@ inline void getReadLCACount(Slimm & slimm,
             slimm.taxaID2Children[currentTaxaID].insert(refIDs.begin(), refIDs.end());
         }
     }
-    
+
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
-        uint32_t currentTaxaID = slimm.references[i].taxaID;
-        float abundance = slimm.taxaID2Abundance[currentTaxaID];
-        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+        if (slimm.references[i].noOfReads > 0)
         {
-            currentTaxaID = (nodes.at(currentTaxaID)).first;
-            if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
-                slimm.taxaID2Abundance[currentTaxaID] += abundance;
-            else
-                slimm.taxaID2Abundance[currentTaxaID] = abundance;
+            uint32_t currentTaxaID = slimm.references[i].taxaID;
+            float abundance = slimm.taxaID2Abundance[currentTaxaID];
+            while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+            {
+                currentTaxaID = (nodes.at(currentTaxaID)).first;
+                if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
+                    slimm.taxaID2Abundance[currentTaxaID] += abundance;
+                else
+                    slimm.taxaID2Abundance[currentTaxaID] = abundance;
+            }
         }
     }
 }
