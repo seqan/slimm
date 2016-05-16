@@ -39,10 +39,9 @@ using namespace seqan;
 // --------------------------------------------------------------------------
 
 ArgumentParser::ParseResult
-parseCommandLine(AppOptions & options, int argc, char const ** argv)
+parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char const ** argv)
 {
     // Setup ArgumentParser.
-    ArgumentParser parser("slimm");
     setDateAndVersion(parser);
     setDescription(parser);
     // Define usage line and long description.
@@ -51,7 +50,7 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
     // The input file/directory argument.
     addArgument(parser,
                 ArgParseArgument(ArgParseArgument::INPUT_FILE, "IN"));
-
+    
     // The output file argument.
     addOption(parser,
               ArgParseOption("o", "output-prefix", "output path prefix.",
@@ -84,18 +83,18 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
     
     setDefaultValue(parser, "bin-width", options.binWidth);
     setDefaultValue(parser, "min-reads", options.minReads);
- 
+    
     addOption(parser,
               ArgParseOption("c",
-                             "cutoff",
-                             "variation of the minnimum coverage "
-                             "from mean (in standard deviation).",
+                             "cov-cutoff",
+                             "the quantile of coverages to use as a cutoff "
+                             "smaller value means bigger threshold.",
                              ArgParseArgument::DOUBLE, "DOUBLE"));
     
-    setMinValue(parser, "cutoff", "0");
-    setMaxValue(parser, "cutoff", "3");
-    setDefaultValue(parser, "cutoff", options.cutoff);
-     
+    setMinValue(parser, "cov-cutoff", "0.0");
+    setMaxValue(parser, "cov-cutoff", "1.0");
+    setDefaultValue(parser, "cov-cutoff", options.covCutOff);
+    
     addOption(parser,
               ArgParseOption("d", "directory", "Input is a directory."));
     addOption(parser,
@@ -103,19 +102,19 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
     
     // Add Examples Section.
     addTextSection(parser, "Examples");
-
+    
     addListItem(parser,
                 "\\fBslimm\\fP \\fB-v\\fP \\fIexample.bam\\fP "
                 "-o \\fIfeatures.tsv\\fP",
                 "get the microbes present in \"example.bam\" alignment "
                 "file and write the result to \"features.tsv\".");
-
+    
     addListItem(parser, "\\fBslimm\\fP \\fB-d\\fP \\fIexample-dir\\fP "
                 "-o \\fI~/results/\\fP",
                 "get the microbes present in the SAM/BAM files located "
                 "under \"example-dir\" and write the result to \""
                 "in results folder under the home directory\".");
-
+    
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     
     if (res != ArgumentParser::PARSE_OK)
@@ -124,31 +123,31 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
     // Extract option values.
     if (isSet(parser, "mapping-files"))
         getOptionValue(options.mappingDir, parser, "mapping-files");
-
+    
     if (isSet(parser, "bin-width"))
         getOptionValue(options.binWidth, parser, "bin-width");
     
     if (isSet(parser, "min-reads"))
         getOptionValue(options.minReads, parser, "min-reads");
-
+    
     if (isSet(parser, "rank"))
         getOptionValue(options.rank, parser, "rank");
     
-    if (isSet(parser, "cutoff"))
-        getOptionValue(options.cutoff, parser, "cutoff");
-
+    if (isSet(parser, "cov-cutoff"))
+        getOptionValue(options.covCutOff, parser, "cov-cutoff");
+    
     if (isSet(parser, "verbose"))
         getOptionValue(options.verbose, parser, "verbose");
-
+    
     if (isSet(parser, "directory"))
-        options.isDirectory = true;    
-
+        options.isDirectory = true;
+    
     getArgumentValue(options.inputPath, parser, 0);
     getOptionValue(options.outputPrefix, parser, "output-prefix");
     
     return ArgumentParser::PARSE_OK;
 }
-           
+
 // --------------------------------------------------------------------------
 // Function main()
 // --------------------------------------------------------------------------
@@ -157,9 +156,9 @@ parseCommandLine(AppOptions & options, int argc, char const ** argv)
 int main(int argc, char const ** argv)
 {
     // Parse the command line.
-    ArgumentParser parser;
+    ArgumentParser parser("slimm");
     AppOptions options;
-    ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
+    ArgumentParser::ParseResult res = parseCommandLine(parser, options, argc, argv);
     
     // If there was an error parsing or built-in argument parser functionality
     // was triggered then we exit the program.  The return code is 1 if there
@@ -167,7 +166,7 @@ int main(int argc, char const ** argv)
     
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
-   
+    
     // Prepare the
     StringList inputPaths;
     uint32_t numFiles = 1, totalRecCount = 0, fileCount = 0;
@@ -199,7 +198,7 @@ int main(int argc, char const ** argv)
     
     std::vector<std::string> uniqueReads;
     std::vector<std::string> uniqueReadsByTaxid;
-
+    
     
     CharString giMap_path, features_path, nodes_path, names_path;
     giMap_path = features_path = nodes_path = names_path = options.mappingDir;
@@ -208,24 +207,23 @@ int main(int argc, char const ** argv)
     append(features_path, "/taxaIDFeatures.map");
     append(nodes_path, "/nodes.dmp");
     append(names_path, "/names.dmp");
-
+    
     Timer<> MainStopWatch;
     // ============get the taxaID2name mapping ================
     std::cout<<"Loding taxaID2name mapping ... ";
     TIntStrMap taxaID2name;
     
     taxaID2name =  loadMappingInt2String<TIntStrMap, CharString>(names_path);
-    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" <<std::endl;
-    
+    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" << std::endl << std::endl;
     // ============get the node mapping ================
-    std::cout<<"Loding node mapping ... ";
+    std::cout<<"Loding node mapping ... " <<std::endl;
     TNodes nodes;
     loadNodes<>(nodes, nodes_path);
     
-    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" <<std::endl;
+    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" << std::endl << std::endl;
     
     // ============get the taxon properties ================
-    std::cout<<"Loding additional taxon related features ...";
+    std::cout<<"Loding additional taxon related features ..." << std::endl;
     std::unordered_map <int, TaxaProperty> taxonProperties;
     std::ifstream taxaIDMap(toCString(features_path));
     std::string line;
@@ -243,17 +241,17 @@ int main(int argc, char const ** argv)
         taxonProperties[atoi(toCString(chunks[0]))]=tp;
     }
     taxaIDMap.close();
-    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" <<std::endl;
-
+    std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
+    
     for(; fileIt != itEnd; goNext(fileIt))
     {
         Timer<> PerFileStopWatch;
         fileCount ++;
         CharString curr_file;
         
-        std::cout<<"\n=============================\nReading "
+        std::cout<<"================================================\nReading "
         <<fileCount<<" of "<< numFiles<<" files ...\n"
-                <<getFilename(toCString(value(fileIt)))<<"\n";
+        <<getFilename(toCString(value(fileIt)))<<"\n";
         // read the original file
         BamFileIn bamFile;
         if (!open(bamFile, toCString(value(fileIt))))
@@ -273,7 +271,7 @@ int main(int argc, char const ** argv)
         
         slimm.references.resize(length(refNames));
         uint32_t noOfRefs = length(refNames);
-        std::cout<<"computing features of each reference genome ... ";
+        std::cout<<"computing features of each reference genome ... " << std::endl;
         
         // Determine taxa id position
         uint32_t tIdPos = 0;
@@ -297,9 +295,12 @@ int main(int argc, char const ** argv)
                     std::cout<<"Unable to find a way to resolve taxon id associated with references" << std::endl;
                     return 1;
                 }
-                    
+                
             }
         }
+
+        
+        
         BamAlignmentRecord record;
         if (slimm.options.binWidth == 0) //if binWidth is not given use avg read length
         {
@@ -334,27 +335,50 @@ int main(int argc, char const ** argv)
             slimm.matchedTaxa.push_back(current_ref.taxaID);
             slimm.references[i] = current_ref;
         }
-        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
+        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
         
-        std::cout<<"Analysing alignments, reads and references ...";
+        std::cout<<"Analysing alignments, reads and references ..."<< std::endl;
+        
         analyzeAlignments(slimm, bamFile);
-        totalRecCount += slimm.noMatchedQueries;
-        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
         
-        float expCov = (slimm.avgQLength*slimm.noMatchedQueries) /
-                        float(slimm.matchedRefsLen);
-
-        std::cout<<"Expected Coverage = " << expCov <<std::endl;
-        std::cout<<"Number of Ref with reads = " << slimm.noOfRefs <<std::endl;
-        std::cout<<"Filtering unlikely sequences ..."  << std::endl ;
+        std::cout << "  " <<  slimm.hitCount << " records processed." << std::endl;
+        std::cout << "    " << slimm.noOfMatched << " matching reads" << std::endl;
+        std::cout << "    " << slimm.noOfUniqlyMatched << " uniquily matching reads"<< std::endl;
+        
+        totalRecCount += slimm.noOfMatched;
+        std::cout<<"in " << PerFileStopWatch.lap() <<" secs " << std::endl << std::endl;
+        
+        
+        // Set the minimum reads to 10k-th of the total number of matched reads if not set by the user
+        if (!isSet(parser, "min-reads"))
+            slimm.options.minReads = 1 + ((slimm.noOfMatched - 1) / 10000);
+        
+        
+        std::cout << "Number of Ref with reads = " << slimm.noOfRefs << std::endl;
+        std::cout << "Expected Coverage = " << slimm.expCov() <<std::endl;
+        std::cout << "Coverage Cutoff = " << slimm.covCutoff()
+        << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
+        std::cout << "Minimum read support = " << slimm.options.minReads <<std::endl;
+        std::cout << "Minimum unique reads support = " << slimm.minUniqReads() << std::endl << std::endl;
+        
+        
+        
+        std::cout   << "Filtering unlikely sequences ..."  << std::endl ;
+        
         filterAlignments(slimm);
-        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
-
-        std::cout   << length(slimm.validRefTaxonIDs)
-                    <<" passed the threshould coverage."<< std::endl;
-    
-        std::cout<<"Writing features to a file ..." ;
+        
+        std::cout << "  " << length(slimm.validRefTaxonIDs)
+        << " passed the threshould coverage."<< std::endl;
+        std::cout << "  " << slimm.failedByCov << " ref's couldn't pass the coverage threshould." << std::endl;
+        std::cout << "  " << slimm.failedByMinRead << " ref's couldn't pass the minimum reads threshould." << std::endl;
+        std::cout << "  " << slimm.failedByMinUniqRead << " ref's couldn't pass the minimum uniq reads threshould." << std::endl;
+        std::cout << "  Uniquily matching reads increased from "
+        << slimm.noOfUniqlyMatched << " to "
+        << slimm.noOfUniqlyMatched2 <<std::endl;
+        std::cout << "in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
+        
+        std::cout<<"Writing features to a file ..." << std::endl;
         std::string outputFile = toCString(value(fileIt));
         if(length(options.outputPrefix) > 0)
         {
@@ -363,34 +387,37 @@ int main(int argc, char const ** argv)
             outputFile.append(getFilename(toCString(options.outputPrefix)));
             outputFile.append(getFilename(toCString(value(fileIt))));
         }
+
         std::string tsvFile = getTSVFileName(outputFile);
         writeToFile(tsvFile, slimm.references, taxaID2name);
-
-        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]" <<std::endl;
-
-        std::cout<<"Assigning reads to Least Common Ancestor (LCA) " ;
-        getReadLCACount(slimm, nodes);
+        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
-        tsvFile = getTSVFileName(outputFile, slimm.options.rank); 
+        std::cout<<"Assigning reads to Least Common Ancestor (LCA)" << std::endl;
+        getReadLCACount(slimm, nodes);
+        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
+        
+        std::cout<<"Writing taxnomic profile to a file ..." << std::endl;
+        tsvFile = getTSVFileName(outputFile, slimm.options.rank);
         writeAbundance(slimm, nodes, taxaID2name, tsvFile) ;
-
-        std::cout <<"in "
-                  << PerFileStopWatch.lap() << " secs [OK!]" << std::endl;
+        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
+        
         std::cout<<"File took " << PerFileStopWatch.elapsed()
-        <<" secs to process." <<std::endl;
+        <<" secs to process." << std::endl;
     }
     
     
     CharString output_directory = getDirectory(toCString(options.inputPath)) ;
     if(length(options.outputPrefix) > 0)
         output_directory = getDirectory(toCString(options.outputPrefix));
-
+    
+    std::cout << "================================================" << std::endl
+    << "================================================" << std::endl << std::endl;
     std::cout << totalRecCount
-              << " SAM/BAM alignment records are proccessed."<<std::endl;
+    << " SAM/BAM alignment records are proccessed."<<std::endl;
     std::cout << "extracted features are written to: "
-              << output_directory<<std::endl;
+    << output_directory<<std::endl;
     std::cout << "Total tame elapsed: "
-              << MainStopWatch.elapsed() <<" secs"<<std::endl;
+    << MainStopWatch.elapsed() <<" secs"<<std::endl;
     
     return 0;
 }
