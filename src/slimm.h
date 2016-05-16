@@ -621,50 +621,6 @@ float ReferenceContig::uniqCovPercent2()
     return getCovPercent(uniqCov2);
 }
 
-// --------------------------------------------------------------------------
-// Function getCovDepth()
-// --------------------------------------------------------------------------
-//uint32_t ReferenceContig::covDepth()
-//{
-//    if(cov.noOfNonZeroBins() == 0)
-//        return 0.0;
-//    
-//    std::vector <uint32_t>::iterator it;
-//    
-//    //copy the coverage height.
-//    std::vector <uint32_t>  bHeights = cov.binsHeight;
-//    std::vector <uint32_t>  bFrequentHeights;
-//    std::sort(bHeights.begin(), bHeights.end());
-//    
-//    uint32_t previousCount=1;
-//    uint32_t currentCount=1;
-//    
-//    for (unsigned int i=1; i<cov.noOfBins; ++i )
-//    {
-//        if (bHeights[i] == bHeights[i-1])
-//        {
-//            ++ currentCount;
-//        }
-//        else
-//        {
-//            if (currentCount==previousCount)
-//            {
-//                bFrequentHeights.push_back(bHeights[i-1]);
-//            }
-//            else if(currentCount > previousCount)
-//            {
-//                bFrequentHeights.empty();
-//                bFrequentHeights.push_back(bHeights[i-1]);
-//                previousCount = currentCount;
-//                
-//            }
-//            currentCount = 1;
-//        }
-//    }
-//    float sum = std::accumulate(bFrequentHeights.begin(),
-//                                bFrequentHeights.end(), 0.0);
-//    return sum / bFrequentHeights.size();
-//}
 
 // --------------------------------------------------------------------------
 // Function getCovDepth()
@@ -990,6 +946,7 @@ inline void filterAlignments(Slimm & slimm)
             // ***** all of the matches in multiple pos will be counted *****
             size_t pos_count = (it->second.targets[0]).positions.size();
             slimm.references[rID].noOfUniqReads2 += pos_count;
+            slimm.noOfUniqlyMatched2 += pos_count;
             for (size_t j=0; j < pos_count; ++j)
             {
                 uint32_t binNo = (it->second.targets[0]).positions[j];
@@ -1005,6 +962,8 @@ inline void filterAlignments(Slimm & slimm)
 //            ++slimm.noOfUniqlyMatched;
         }
     }
+    
+    
     float totalAb = 0.0;
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
@@ -1028,9 +987,6 @@ inline void filterAlignments(Slimm & slimm)
         }
 
     }
-    
-    std::cout << "Total number of uniquily matching reads "
-    "(after recomputition) = " << slimm.noOfUniqlyMatched <<std::endl;
 }
 
 
