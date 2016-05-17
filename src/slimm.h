@@ -269,6 +269,7 @@ public:
 class Slimm
 {
     float _covCutoff = 0.0;
+    float _uniqCovCutoff = 0.0;
     int32_t _minUniqReads = -1;
     int32_t _minReads = -1;
 public:
@@ -282,6 +283,7 @@ public:
     __intSizeMatchCount             failedByMinRead = 0;
     __intSizeMatchCount             failedByMinUniqRead = 0;
     __intSizeMatchCount             failedByCov = 0;
+    __intSizeMatchCount             failedByUniqCov = 0;
     __intSizeQCount                 hitCount = 0;
     __intSizeQCount                 uniqHitCount = 0;
     __intSizeQCount                 noOfMatched = 0;
@@ -294,7 +296,9 @@ public:
     TIntFloatMap                    taxaID2Abundance;
     TIntSetMap                      taxaID2Children;
     float                           expCov() const;
+
     float                           covCutoff();
+    float                           uniqCovCutoff();
     __intSizeQCount                 minReads();
     __intSizeQCount                 minUniqReads();
     
@@ -676,6 +680,22 @@ float Slimm::covCutoff()
     }
     return _covCutoff;
 }
+float Slimm::uniqCovCutoff()
+{
+    if (_covCutoff == 0.0)
+    {
+        std::vector<float> covs = {};
+        for (uint32_t i=0; i<length(references); ++i)
+        {
+            if (references[i].noOfUniqReads > 0)
+            {
+                covs.push_back(references[i].uniqCovPercent());
+            }
+        }
+        _uniqCovCutoff = getCutoffByQuantile<float>(covs, options.covCutOff);
+    }
+    return _uniqCovCutoff;
+}
 float Slimm::expCov() const
 {
     return float(avgQLength * noOfMatched) / matchedRefsLen;
@@ -932,9 +952,28 @@ inline void filterAlignments(Slimm & slimm)
     {
         if (slimm.references[i].noOfReads == 0)
             continue;
-        if (slimm.references[i].covPercent() > slimm.covCutoff() &&
-            slimm.references[i].noOfReads > slimm.options.minReads)
+        if (
+            slimm.references[i].covPercent() >= slimm.covCutoff() &&
+            slimm.references[i].uniqCovPercent() >= slimm.uniqCovCutoff()
+//            slimm.references[i].noOfReads >= slimm.options.minReads
+            )
             slimm.validRefTaxonIDs.insert(slimm.matchedTaxa[i]);
+        else
+        {
+            if(slimm.references[i].noOfReads < slimm.options.minReads)
+            {
+                ++slimm.failedByMinRead;
+            }
+            if(slimm.references[i].covPercent() < slimm.covCutoff())
+            {
+                ++slimm.failedByCov;
+            }
+            if(slimm.references[i].uniqCovPercent() < slimm.uniqCovCutoff())
+            {
+                ++slimm.failedByUniqCov;
+            }
+        }
+
     }
     
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
