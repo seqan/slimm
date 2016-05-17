@@ -953,25 +953,26 @@ inline void filterAlignments(Slimm & slimm)
         if (slimm.references[i].noOfReads == 0)
             continue;
         if (
-            slimm.references[i].covPercent() >= slimm.covCutoff() &&
-            slimm.references[i].uniqCovPercent() >= slimm.uniqCovCutoff()
-//            slimm.references[i].noOfReads >= slimm.options.minReads
+            slimm.references[i].uniqCovPercent() >= slimm.uniqCovCutoff() &&
+//            slimm.references[i].noOfReads >= slimm.options.minReads &&
+//            slimm.references[i].covPercent() >= slimm.covCutoff() &&
+            true
             )
             slimm.validRefTaxonIDs.insert(slimm.matchedTaxa[i]);
         else
         {
-            if(slimm.references[i].noOfReads < slimm.options.minReads)
-            {
-                ++slimm.failedByMinRead;
-            }
-            if(slimm.references[i].covPercent() < slimm.covCutoff())
-            {
-                ++slimm.failedByCov;
-            }
             if(slimm.references[i].uniqCovPercent() < slimm.uniqCovCutoff())
             {
                 ++slimm.failedByUniqCov;
             }
+//            if(slimm.references[i].noOfReads < slimm.options.minReads)
+//            {
+//                ++slimm.failedByMinRead;
+//            }
+//            if(slimm.references[i].covPercent() < slimm.covCutoff())
+//            {
+//                ++slimm.failedByCov;
+//            }
         }
 
     }

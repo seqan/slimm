@@ -359,8 +359,8 @@ int main(int argc, char const ** argv)
         std::cout << "Expected Coverage = " << slimm.expCov() <<std::endl;
         std::cout << "Coverage Cutoff = " << slimm.covCutoff()
         << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
-        std::cout << "Minimum read support = " << slimm.options.minReads <<std::endl;
-        std::cout << "Minimum unique reads support = " << slimm.minUniqReads() << std::endl << std::endl;
+//        std::cout << "Minimum read support = " << slimm.options.minReads <<std::endl;
+//        std::cout << "Minimum unique reads support = " << slimm.minUniqReads() << std::endl << std::endl;
         
         
         
@@ -371,8 +371,9 @@ int main(int argc, char const ** argv)
         std::cout << "  " << length(slimm.validRefTaxonIDs)
         << " passed the threshould coverage."<< std::endl;
         std::cout << "  " << slimm.failedByCov << " ref's couldn't pass the coverage threshould." << std::endl;
-        std::cout << "  " << slimm.failedByMinRead << " ref's couldn't pass the minimum reads threshould." << std::endl;
-        std::cout << "  " << slimm.failedByMinUniqRead << " ref's couldn't pass the minimum uniq reads threshould." << std::endl;
+        std::cout << "  " << slimm.failedByUniqCov << " ref's couldn't pass the uniq coverage threshould." << std::endl;
+//        std::cout << "  " << slimm.failedByMinRead << " ref's couldn't pass the minimum reads threshould." << std::endl;
+//        std::cout << "  " << slimm.failedByMinUniqRead << " ref's couldn't pass the minimum uniq reads threshould." << std::endl;
         std::cout << "  Uniquily matching reads increased from "
         << slimm.noOfUniqlyMatched << " to "
         << slimm.noOfUniqlyMatched2 <<std::endl;
