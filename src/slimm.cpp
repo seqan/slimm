@@ -359,6 +359,8 @@ int main(int argc, char const ** argv)
         std::cout << "Expected Coverage = " << slimm.expCov() <<std::endl;
         std::cout << "Coverage Cutoff = " << slimm.covCutoff()
         << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
+        std::cout << "UniqCoverage Cutoff = " << slimm.uniqCovCutoff()
+        << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
 //        std::cout << "Minimum read support = " << slimm.options.minReads <<std::endl;
 //        std::cout << "Minimum unique reads support = " << slimm.minUniqReads() << std::endl << std::endl;
         
