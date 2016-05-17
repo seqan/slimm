@@ -1075,7 +1075,9 @@ inline void getReadLCACount(Slimm & slimm,
         std::set<uint32_t> refIDs = {};
         if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs))
         {
-            lcaTaxaID = slimm.matchedTaxa[it->second.targets[0].rID];
+            __int32 refID = (it->second.targets[0]).rID;
+            refIDs.insert(refID);
+            lcaTaxaID = slimm.matchedTaxa[refID];
         }
         else
         {
@@ -1162,7 +1164,6 @@ inline void writeAbundance(Slimm & slimm,
     for (auto tID : slimm.taxaID2ReadCount) {
         if (slimm.options.rank == nodes[tID.first].second)
         {
-            
             uint32_t cLength = 0;
             uint32_t noOfContribs = 0;
             std::set<uint32_t>::iterator it;
@@ -1187,7 +1188,7 @@ inline void writeAbundance(Slimm & slimm,
     float unknownAbundance = float(unknownReads)/(averageContributerLength * slimm.noOfMatched);
     totalAbundunce += unknownAbundance;
     
-
+    count = 1;
     abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tRelativeAbundance2\tCoverage\n";
     
     for (auto tID : cladeCov) {
@@ -1195,7 +1196,7 @@ inline void writeAbundance(Slimm & slimm,
         float relAbundance2 = slimm.taxaID2Abundance.at(tID.first);
         // If the abundance is lower than a threshold do not report it
         // Put the reads under the unkown
-        if (relAbundance == 0.0 || tID.second == 0.0)
+        if (relAbundance == 0.0 || tID.second < slimm.covCutoff())
         {
             unknownReads += totalCov;
             unknownAbundance += relAbundance;
