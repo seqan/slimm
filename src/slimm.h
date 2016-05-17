@@ -669,7 +669,7 @@ float Slimm::covCutoff()
         {
             if (references[i].noOfUniqReads > 0)
             {
-                covs.push_back(references[i].uniqCovPercent());
+                covs.push_back(references[i].covPercent());
             }
         }
         _covCutoff = getCutoffByQuantile<float>(covs, options.covCutOff);
