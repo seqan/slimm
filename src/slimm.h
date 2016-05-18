@@ -1174,22 +1174,29 @@ inline void getReadLCACount(Slimm & slimm,
         if (slimm.references[i].noOfReads > 0)
         {
             uint32_t currentTaxaID = slimm.references[i].taxaID;
-            uint32_t uniqCount = slimm.references[i].noOfUniqReads2;
             float abundance = slimm.taxaID2Abundance[currentTaxaID];
             while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
             {
-                currentTaxaID = (nodes.at(currentTaxaID)).first;
+                if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
+                    slimm.taxaID2Abundance[currentTaxaID] += abundance;
+                else
+                    slimm.taxaID2Abundance[currentTaxaID] = abundance;
+            }
+            currentTaxaID = (nodes.at(currentTaxaID)).first;
+        }
+        if (slimm.references[i].noOfUniqReads2 > 0)
+        {
+            uint32_t currentTaxaID = slimm.references[i].taxaID;
+            uint32_t uniqCount = slimm.references[i].noOfUniqReads2;
+            while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+            {
                 if (slimm.taxaID2ReadCount.count(currentTaxaID) >= 1)
                     slimm.taxaID2ReadCount[currentTaxaID] += uniqCount;
                 else
                     slimm.taxaID2ReadCount[currentTaxaID] = uniqCount;
                 //add the contributing children references to the taxa
+                currentTaxaID = (nodes.at(currentTaxaID)).first;
                 slimm.taxaID2Children[currentTaxaID].insert(i);
-                
-                if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
-                    slimm.taxaID2Abundance[currentTaxaID] += abundance;
-                else
-                    slimm.taxaID2Abundance[currentTaxaID] = abundance;
             }
         }
     }
