@@ -1181,8 +1181,8 @@ inline void getReadLCACount(Slimm & slimm,
                     slimm.taxaID2Abundance[currentTaxaID] += abundance;
                 else
                     slimm.taxaID2Abundance[currentTaxaID] = abundance;
+                currentTaxaID = (nodes.at(currentTaxaID)).first;
             }
-            currentTaxaID = (nodes.at(currentTaxaID)).first;
         }
         if (slimm.references[i].noOfUniqReads2 > 0)
         {
