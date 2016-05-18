@@ -754,14 +754,12 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
             p1.push_back(currentTaxaID);
             currentTaxaID = nodes.at(currentTaxaID).first;
         }
-        p1.push_back(currentTaxaID);
         currentTaxaID = *std::next(it);
         while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
         {
             p2.push_back(currentTaxaID);
             currentTaxaID = nodes.at(currentTaxaID).first;
         }
-        p2.push_back(currentTaxaID);
         bool found = false;
         for (uint16_t i=0; i<p1.size(); ++i)
         {
@@ -783,6 +781,10 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
         {
             parents.erase(it, std::next(std::next(it)));
             parents.insert(currentTaxaID);
+        }
+        else
+        {
+            return 0;
         }
     }
     return *(parents.begin());
