@@ -983,6 +983,8 @@ inline void filterAlignments(Slimm & slimm)
         
         if (slimm.references[i].noOfReads == 0)
             continue;
+        if (slimm.references[i].noOfUniqReads >= 100 && slimm.references[i].noOfUniqReads/slimm.references[i].uniqCov.noOfNonZeroBins() > 20)
+            continue;
         if (
             slimm.references[i].covPercent() >= slimm.covCutoff() &&
             true
@@ -1022,8 +1024,6 @@ inline void filterAlignments(Slimm & slimm)
                 ++slimm.references[rID].uniqCov2.binsHeight[binNo];
             }
             // *****                                                    *****
-            
-            
 //          //only the first match will be counted
 //            uint32_t binNo = it->second.targets[0].positions[0];
 //            ++slimm.references[rID].noOfUniqReads2;
