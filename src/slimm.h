@@ -746,27 +746,44 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
     }
     while (parents.size() > 1)
     {
-        std::set<uint32_t> newParents;
-        uint32_t current_count = parents.size();
-        for (std::set<uint32_t>::iterator it = parents.begin();
-             it!= parents.end(); ++it)
+        std::set<uint32_t>::iterator it = parents.begin();
+        std::vector<uint32_t> p1, p2;
+        uint32_t currentTaxaID = *it;
+        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
         {
-            if (nodes.find(*it) != nodes.end())
+            p1.push_back(currentTaxaID);
+            currentTaxaID = nodes.at(currentTaxaID).first;
+        }
+        p1.push_back(currentTaxaID);
+        currentTaxaID = *std::next(it);
+        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+        {
+            p2.push_back(currentTaxaID);
+            currentTaxaID = nodes.at(currentTaxaID).first;
+        }
+        p2.push_back(currentTaxaID);
+        bool found = false;
+        for (uint16_t i=0; i<p1.size(); ++i)
+        {
+            for (uint16_t j=0; j<p2.size(); ++j)
             {
-                if(parents.find((nodes.at(*it).first)) != parents.end())
+                if (p1[i] == p2[j])
                 {
-                    --current_count;
-                    if(current_count == 1)
-                        return (nodes.at(*it)).first;
-                    else
-                        continue;
+                    found = true;
+                    currentTaxaID = p1[i];
+                    break;
                 }
-                else
-                    newParents.insert(nodes.at(*it).first);
+            }
+            if (found)
+            {
+                break;
             }
         }
-        
-        parents = newParents;
+        if (found)
+        {
+            parents.erase(it, std::next(std::next(it)));
+            parents.insert(currentTaxaID);
+        }
     }
     return *(parents.begin());
 }
@@ -793,11 +810,16 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
     return getLCA(taxaIDs, taxaIDs, nodes);
 }
 
+
+
 uint32_t getLCA(std::vector<uint32_t> const & taxaIDs,
                 TNodes const & nodes)
 {
     std::set<uint32_t> s(taxaIDs.begin(), taxaIDs.end());
-    return getLCA(s, s, nodes);
+    if (s.size() == 1)
+        return taxaIDs[0];
+    else
+        return getLCA(s, s, nodes);
 }
 
 
@@ -1210,8 +1232,6 @@ inline void writeAbundance(Slimm & slimm,
             uint32_t cLength = 0;
             uint32_t noOfContribs = 0;
             std::set<uint32_t>::iterator it;
-//            if(tID.first == 1428)
-//                std::cout << "hello \n";
             for (it=slimm.taxaID2Children.at(tID.first).begin();
                  it!=slimm.taxaID2Children.at(tID.first).end(); ++it)
             {
