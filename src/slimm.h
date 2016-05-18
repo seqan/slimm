@@ -748,7 +748,8 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
     {
         std::set<uint32_t>::iterator it = parents.begin();
         uint32_t t1 = *it;
-        uint32_t t2 = *std::next(it);
+        ++it;
+        uint32_t t2 = *it;
         bool found = false;
         while (nodes.count(t1) == 1 && t1 != 0)
         {
@@ -769,7 +770,7 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
         }
         if (found)
         {
-            parents.erase(it, std::next(std::next(it)));
+            parents.erase(parents.begin(), std::next(it));
             parents.insert(t1);
         }
         else
