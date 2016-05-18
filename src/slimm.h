@@ -1109,18 +1109,13 @@ inline void writeToFile(std::string & filePath,
 inline void getReadLCACount(Slimm & slimm,
                             TNodes const & nodes)
 {
+    // put the non-unique read to upper taxa.
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
-        uint32_t lcaTaxaID = 0;
-        std::set<uint32_t> refIDs = {};
-        if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs))
+        if(!(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs)))
         {
-            __int32 refID = (it->second.targets[0]).rID;
-            refIDs.insert(refID);
-            lcaTaxaID = slimm.matchedTaxa[refID];
-        }
-        else
-        {
+            uint32_t lcaTaxaID = 0;
+            std::set<uint32_t> refIDs = {};
             std::set<uint32_t> taxaIDs;
             size_t len = it->second.targets.size();
             for (size_t i=0; i < len; ++i)
@@ -1130,15 +1125,14 @@ inline void getReadLCACount(Slimm & slimm,
                 refIDs.insert(refID);
             }
             lcaTaxaID = getLCA(taxaIDs, nodes);
+            slimm.taxaID2Children[lcaTaxaID].insert(refIDs.begin(), refIDs.end());
+            // If taxaID already exists
+            if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
+                ++slimm.taxaID2ReadCount[lcaTaxaID];
+            else   // first time for taxaID
+                slimm.taxaID2ReadCount[lcaTaxaID] = 1;
+            //add the contributing children references to the taxa
         }
-        // If taxaID already exists
-        if (slimm.taxaID2ReadCount.count(lcaTaxaID) == 1)
-            ++slimm.taxaID2ReadCount[lcaTaxaID];
-        else   // first time for taxaID
-            slimm.taxaID2ReadCount[lcaTaxaID] = 1;
-        //add the contributing children references to the taxa
-        slimm.taxaID2Children[lcaTaxaID].insert(refIDs.begin(), refIDs.end());
-        
     }
     //add the sum of read counts of children all ancestors of the LCA
     TIntIntMap tID2ReadCountCopy = slimm.taxaID2ReadCount;
@@ -1158,16 +1152,25 @@ inline void getReadLCACount(Slimm & slimm,
             slimm.taxaID2Children[currentTaxaID].insert(refIDs.begin(), refIDs.end());
         }
     }
-
+    
+    
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
         if (slimm.references[i].noOfReads > 0)
         {
             uint32_t currentTaxaID = slimm.references[i].taxaID;
+            uint32_t uniqCount = slimm.references[i].noOfUniqReads2;
             float abundance = slimm.taxaID2Abundance[currentTaxaID];
             while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
             {
                 currentTaxaID = (nodes.at(currentTaxaID)).first;
+                if (slimm.taxaID2ReadCount.count(currentTaxaID) >= 1)
+                    slimm.taxaID2ReadCount[currentTaxaID] += uniqCount;
+                else
+                    slimm.taxaID2ReadCount[currentTaxaID] = uniqCount;
+                //add the contributing children references to the taxa
+                slimm.taxaID2Children[currentTaxaID].insert(i);
+                
                 if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
                     slimm.taxaID2Abundance[currentTaxaID] += abundance;
                 else
@@ -1207,6 +1210,8 @@ inline void writeAbundance(Slimm & slimm,
             uint32_t cLength = 0;
             uint32_t noOfContribs = 0;
             std::set<uint32_t>::iterator it;
+//            if(tID.first == 1428)
+//                std::cout << "hello \n";
             for (it=slimm.taxaID2Children.at(tID.first).begin();
                  it!=slimm.taxaID2Children.at(tID.first).end(); ++it)
             {
