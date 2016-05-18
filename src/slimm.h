@@ -1194,9 +1194,9 @@ inline void getReadLCACount(Slimm & slimm,
                     slimm.taxaID2ReadCount[currentTaxaID] += uniqCount;
                 else
                     slimm.taxaID2ReadCount[currentTaxaID] = uniqCount;
+                slimm.taxaID2Children[currentTaxaID].insert(i);
                 //add the contributing children references to the taxa
                 currentTaxaID = (nodes.at(currentTaxaID)).first;
-                slimm.taxaID2Children[currentTaxaID].insert(i);
             }
         }
     }
