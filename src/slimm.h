@@ -966,9 +966,9 @@ inline void filterAlignments(Slimm & slimm)
     for (uint32_t i=0; i<noOfRefs; ++i)
     {
 
-        uint32_t factor = 1 + ((slimm.references[i].length - 1) / 1000000);
-        uint32_t normMinReads = slimm.minReads() *  factor;
-        uint32_t normUniqMinReads = slimm.minUniqReads() * factor;
+//        uint32_t factor = 1 + ((slimm.references[i].length - 1) / 1000000);
+//        uint32_t normMinReads = slimm.minReads() *  factor;
+//        uint32_t normUniqMinReads = slimm.minUniqReads() * factor;
 //        if (
 //            slimm.references[i].noOfReads >= normMinReads &&
 //            slimm.references[i].noOfUniqReads >= normUniqMinReads &&
