@@ -747,40 +747,30 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
     while (parents.size() > 1)
     {
         std::set<uint32_t>::iterator it = parents.begin();
-        std::vector<uint32_t> p1, p2;
-        uint32_t currentTaxaID = *it;
-        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
-        {
-            p1.push_back(currentTaxaID);
-            currentTaxaID = nodes.at(currentTaxaID).first;
-        }
-        currentTaxaID = *std::next(it);
-        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
-        {
-            p2.push_back(currentTaxaID);
-            currentTaxaID = nodes.at(currentTaxaID).first;
-        }
+        uint32_t t1 = *it;
+        uint32_t t2 = *std::next(it);
         bool found = false;
-        for (uint16_t i=0; i<p1.size(); ++i)
+        while (nodes.count(t1) == 1 && t1 != 0)
         {
-            for (uint16_t j=0; j<p2.size(); ++j)
+            while (nodes.count(t2) == 1 && t2 != 0)
             {
-                if (p1[i] == p2[j])
+                if (t1 == t2)
                 {
                     found = true;
-                    currentTaxaID = p1[i];
                     break;
                 }
+                t2 = nodes.at(t2).first;
             }
             if (found)
             {
                 break;
             }
+            t1 = nodes.at(t1).first;
         }
         if (found)
         {
             parents.erase(it, std::next(std::next(it)));
-            parents.insert(currentTaxaID);
+            parents.insert(t1);
         }
         else
         {
