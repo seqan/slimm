@@ -247,10 +247,6 @@ public:
     //checks if all the match points are in the same sequence
     bool isUniq();
     
-    // checks if all the match points are in the same sequence
-    // ignoring sequences that are not in refList
-    bool isUniq(std::vector<uint32_t> const & taxaIDs,
-                std::set<uint32_t> const & valRefs);
     
     //checks if all the match points are in the same taxaID
     bool isUniq(std::vector<uint32_t> const & taxaIDs);
@@ -316,8 +312,7 @@ bool Read::isUniq()
 
 // checks if all the match points are in the same sequence
 // ignoring sequences that are not in refList
-bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
-                  std::set<uint32_t> const & valtaxaIDs)
+bool Read::isUniq(std::vector<uint32_t> const & taxaIDs)
 {
     size_t len = targets.size();
     if (len == 0 || len == 1)
@@ -328,8 +323,7 @@ bool Read::isUniq(std::vector<uint32_t> const & taxaIDs,
         for (size_t i=0; i < len; ++i)
         {
             uint32_t refID = taxaIDs[(targets[i]).rID];
-            if(valtaxaIDs.find(refID) != valtaxaIDs.end())
-                refTaxaIDs.insert(refID);
+            refTaxaIDs.insert(refID);
         }
         if (refTaxaIDs.size() > 1)
         {
@@ -845,12 +839,11 @@ inline void analyzeAlignments(Slimm & slimm,
     
     __intSizeGLength concatQLength = 0;
 
-    std::set<uint32_t> taxaIDs(slimm.matchedTaxa.begin(), slimm.matchedTaxa.end());
     
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         concatQLength += it->second.len;
-        if(it->second.isUniq(slimm.matchedTaxa, taxaIDs))
+        if(it->second.isUniq(slimm.matchedTaxa))
         {
             __int32 rID = it->second.targets[0].rID;
             it->second.sumRefLengths += slimm.references[record.rID].length;
@@ -991,7 +984,6 @@ inline void filterAlignments(Slimm & slimm)
         if (slimm.references[i].noOfReads == 0)
             continue;
         if (
-            slimm.references[i].uniqCovPercent() >= slimm.uniqCovCutoff() &&
             slimm.references[i].covPercent() >= slimm.covCutoff() &&
             true
             )
@@ -1017,7 +1009,7 @@ inline void filterAlignments(Slimm & slimm)
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         it->second.update(slimm.matchedTaxa, slimm.validRefTaxonIDs, slimm.references);
-        if(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs))
+        if(it->second.isUniq(slimm.matchedTaxa))
         {
             __int32 rID = (it->second.targets[0]).rID;
             // ***** all of the matches in multiple pos will be counted *****
@@ -1149,7 +1141,7 @@ inline void getReadLCACount(Slimm & slimm,
     // put the non-unique read to upper taxa.
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
-        if(!(it->second.isUniq(slimm.matchedTaxa, slimm.validRefTaxonIDs)))
+        if(!(it->second.isUniq(slimm.matchedTaxa)))
         {
             uint32_t lcaTaxaID = 0;
             std::set<uint32_t> refIDs = {};
