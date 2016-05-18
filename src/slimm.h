@@ -1229,7 +1229,7 @@ inline void writeAbundance(Slimm & slimm,
     totalAbundunce += unknownAbundance;
     
     count = 1;
-    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tRelativeAbundance2\tCoverage\n";
+    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tRelativeAbundance2\tCoverage\tContributers\n";
     
     for (auto tID : cladeCov) {
         float relAbundance = cladeAbundance[tID.first]/totalAbundunce;
@@ -1255,13 +1255,14 @@ inline void writeAbundance(Slimm & slimm,
                         << slimm.taxaID2ReadCount.at(tID.first) << "\t"
                         << relAbundance << "\t"
                         << relAbundance2 << "\t"
+                        << slimm.taxaID2Children.at(tID.first).size() << "\t"
                         << tID.second << "\n";
         ++count;
     }
     
     // add the remaining  matching reads to unknowns.
     abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
-    << unknownReads << "\t" << unknownAbundance << "\n";
+    << unknownReads << "\t" << unknownAbundance << "\t0.0\t0\n";
     abundunceFile.close();
     std::cout<< faild_count <<" bellow cutoff ("<< slimm.covCutoff() <<") ...";}
 
