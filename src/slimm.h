@@ -345,7 +345,7 @@ void Read::update(std::vector<uint32_t> const & taxaIDs,
                   std::vector<ReferenceContig> const & references )
 {
     size_t len = targets.size();
-    if (len == 0 || len == 1)
+    if (len == 0)
         return;
     else
     {
