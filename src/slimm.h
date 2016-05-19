@@ -852,7 +852,7 @@ inline void analyzeAlignments(Slimm & slimm,
             // ***** all of the matches in multiple pos will be counted *****
             size_t pos_count = (it->second.targets[0]).positions.size();
             slimm.references[rID].noOfReads += pos_count;
-            slimm.references[rID].noOfUniqReads += pos_count;
+            slimm.references[rID].noOfUniqReads += 1;
             slimm.uniqHitCount += pos_count;
             it->second.sumRefLengths += slimm.references[rID].length;
             for (size_t j=0; j < pos_count; ++j)
@@ -996,14 +996,14 @@ inline void filterAlignments(Slimm & slimm)
             {
                 ++slimm.failedByUniqCov;
             }
-//            if(slimm.references[i].noOfReads < slimm.options.minReads)
-//            {
-//                ++slimm.failedByMinRead;
-//            }
-//            if(slimm.references[i].covPercent() < slimm.covCutoff())
-//            {
-//                ++slimm.failedByCov;
-//            }
+            if(slimm.references[i].noOfReads < slimm.options.minReads)
+            {
+                ++slimm.failedByMinRead;
+            }
+            if(slimm.references[i].covPercent() < slimm.covCutoff())
+            {
+                ++slimm.failedByCov;
+            }
         }
 
     }
@@ -1016,7 +1016,7 @@ inline void filterAlignments(Slimm & slimm)
             __int32 rID = (it->second.targets[0]).rID;
             // ***** all of the matches in multiple pos will be counted *****
             size_t pos_count = (it->second.targets[0]).positions.size();
-            slimm.references[rID].noOfUniqReads2 += pos_count;
+            slimm.references[rID].noOfUniqReads2 += 1;
             slimm.noOfUniqlyMatched2 += pos_count;
             for (size_t j=0; j < pos_count; ++j)
             {
