@@ -849,7 +849,6 @@ inline void analyzeAlignments(Slimm & slimm,
             it->second.sumRefLengths += slimm.references[record.rID].length;
             ++slimm.noOfUniqlyMatched;
 
-            // ***** all of the matches in multiple pos will be counted *****
             size_t pos_count = (it->second.targets[0]).positions.size();
             slimm.references[rID].noOfReads += pos_count;
             it->second.sumRefLengths += slimm.references[rID].length;
@@ -860,16 +859,7 @@ inline void analyzeAlignments(Slimm & slimm,
             }
             slimm.references[rID].noOfUniqReads += 1;
             slimm.uniqHitCount += 1;
-            ++slimm.references[rID].uniqCov.binsHeight[0];
-            // *****                                                    *****
-
-            
-//          //only the first match will be counted
-//            uint32_t binNo = it->second.targets[0].positions[0];
-//            ++slimm.references[rID].noOfUniqReads;
-//            ++slimm.references[rID].cov.binsHeight[binNo];
-//            ++slimm.references[rID].uniqCov.binsHeight[binNo];
-//            ++slimm.references[rID].noOfReads;
+            ++slimm.references[rID].uniqCov.binsHeight[(it->second.targets[0]).positions[0]];
         }
         else
         {
