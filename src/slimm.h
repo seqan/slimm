@@ -983,8 +983,8 @@ inline void filterAlignments(Slimm & slimm)
         
         if (slimm.references[i].noOfReads == 0)
             continue;
-//        if (slimm.references[i].noOfUniqReads >= 100 && slimm.references[i].noOfUniqReads/slimm.references[i].uniqCov.noOfNonZeroBins() > 20)
-//            continue;
+        if (slimm.references[i].noOfUniqReads >= 100 && slimm.references[i].uniqCov.noOfNonZeroBins() < 10)
+            continue;
         if (
             slimm.references[i].covPercent() >= slimm.covCutoff() &&
             true
