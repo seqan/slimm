@@ -974,6 +974,7 @@ inline void filterAlignments(Slimm & slimm)
         if (slimm.references[i].noOfReads == 0)
             continue;
         if (
+            slimm.references[i].covPercent() >= slimm.covCutoff() &&
             slimm.references[i].uniqCovPercent() >= slimm.uniqCovCutoff() &&
             true
             )
