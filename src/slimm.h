@@ -660,7 +660,7 @@ float ReferenceContig::uniqCovDepth2()
 }
 float Slimm::covCutoff()
 {
-    if (_covCutoff == 0.0)
+    if (_covCutoff == 0.0 && options.covCutOff < 1.0)
     {
         std::vector<float> covs = {};
         for (uint32_t i=0; i<length(references); ++i)
@@ -676,7 +676,7 @@ float Slimm::covCutoff()
 }
 float Slimm::uniqCovCutoff()
 {
-    if (_covCutoff == 0.0)
+    if (_uniqCovCutoff == 0.0 && options.covCutOff < 1.0)
     {
         std::vector<float> covs = {};
         for (uint32_t i=0; i<length(references); ++i)
@@ -696,6 +696,8 @@ float Slimm::expCov() const
 }
 __intSizeQCount Slimm::minReads()
 {
+    if (options.covCutOff == 1.0)
+        _minReads = 0;
     if (_minReads == -1)
     {
         std::vector<int> counts = {};
@@ -712,6 +714,8 @@ __intSizeQCount Slimm::minReads()
 }
 __intSizeQCount Slimm::minUniqReads()
 {
+    if (options.covCutOff == 1.0)
+        _minUniqReads = 0;
     if (_minUniqReads == -1)
     {
         std::vector<int> uniqCounts = {};
@@ -1246,7 +1250,7 @@ inline void writeAbundance(Slimm & slimm,
     totalAbundunce += unknownAbundance;
     
     count = 1;
-    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tRelativeAbundance2\tCoverage\tContributers\n";
+    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tContributers\tCoverage\n";
     
     for (auto tID : cladeCov) {
         float relAbundance = cladeAbundance[tID.first]/totalAbundunce;
@@ -1271,7 +1275,6 @@ inline void writeAbundance(Slimm & slimm,
                         << tID.first << "\t"
                         << slimm.taxaID2ReadCount.at(tID.first) << "\t"
                         << relAbundance << "\t"
-                        << relAbundance2 << "\t"
                         << slimm.taxaID2Children.at(tID.first).size() << "\t"
                         << tID.second << "\n";
         ++count;
