@@ -852,15 +852,15 @@ inline void analyzeAlignments(Slimm & slimm,
             // ***** all of the matches in multiple pos will be counted *****
             size_t pos_count = (it->second.targets[0]).positions.size();
             slimm.references[rID].noOfReads += pos_count;
-            slimm.references[rID].noOfUniqReads += 1;
-            slimm.uniqHitCount += pos_count;
             it->second.sumRefLengths += slimm.references[rID].length;
             for (size_t j=0; j < pos_count; ++j)
             {
                 uint32_t binNo = (it->second.targets[0]).positions[j];
                 ++slimm.references[rID].cov.binsHeight[binNo];
-                ++slimm.references[rID].uniqCov.binsHeight[binNo];
             }
+            slimm.references[rID].noOfUniqReads += 1;
+            slimm.uniqHitCount += 1;
+            ++slimm.references[rID].uniqCov.binsHeight[0];
             // *****                                                    *****
 
             
@@ -983,8 +983,8 @@ inline void filterAlignments(Slimm & slimm)
         
         if (slimm.references[i].noOfReads == 0)
             continue;
-        if (slimm.references[i].noOfUniqReads >= 100 && slimm.references[i].noOfUniqReads/slimm.references[i].uniqCov.noOfNonZeroBins() > 20)
-            continue;
+//        if (slimm.references[i].noOfUniqReads >= 100 && slimm.references[i].noOfUniqReads/slimm.references[i].uniqCov.noOfNonZeroBins() > 20)
+//            continue;
         if (
             slimm.references[i].covPercent() >= slimm.covCutoff() &&
             true
@@ -1014,21 +1014,10 @@ inline void filterAlignments(Slimm & slimm)
         if(it->second.isUniq(slimm.matchedTaxa))
         {
             __int32 rID = (it->second.targets[0]).rID;
-            // ***** all of the matches in multiple pos will be counted *****
-            size_t pos_count = (it->second.targets[0]).positions.size();
             slimm.references[rID].noOfUniqReads2 += 1;
-            slimm.noOfUniqlyMatched2 += pos_count;
-            for (size_t j=0; j < pos_count; ++j)
-            {
-                uint32_t binNo = (it->second.targets[0]).positions[j];
-                ++slimm.references[rID].uniqCov2.binsHeight[binNo];
-            }
-            // *****                                                    *****
-//          //only the first match will be counted
-//            uint32_t binNo = it->second.targets[0].positions[0];
-//            ++slimm.references[rID].noOfUniqReads2;
-//            ++slimm.references[rID].uniqCov2.binsHeight[binNo];
-//            ++slimm.noOfUniqlyMatched;
+            slimm.noOfUniqlyMatched2 += 1;
+            uint32_t binNo = (it->second.targets[0]).positions[0];
+            ++slimm.references[rID].uniqCov2.binsHeight[binNo];
         }
     }
     
