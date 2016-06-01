@@ -751,6 +751,7 @@ uint32_t getLCA(std::set<uint32_t> const & taxaIDs,
         bool found = false;
         while (nodes.count(t1) == 1 && t1 != 0)
         {
+            t2 = *it;
             while (nodes.count(t2) == 1 && t2 != 0)
             {
                 if (t1 == t2)
@@ -1015,29 +1016,29 @@ inline void filterAlignments(Slimm & slimm)
     }
     
     
-    float totalAb = 0.0;
-    for (uint32_t i=0; i<length(slimm.references); ++i)
-    {
-        if (slimm.references[i].noOfUniqReads2 > 0)
-        {
-            slimm.references[i].relAbundanceUniq2 = float(slimm.references[i].noOfUniqReads2 * 100)/slimm.uniqHitCount;
-            totalAb += slimm.references[i].relAbundanceUniq2/slimm.references[i].length;
-        }
-        else
-        {
-            slimm.references[i].relAbundanceUniq2 = 0.0;
-        }
-    }
-    for (uint32_t i=0; i<length(slimm.references); ++i)
-    {
-        if (slimm.references[i].noOfUniqReads2 > 0)
-        {
-            slimm.references[i].relAbundanceUniq2 = (slimm.references[i].relAbundanceUniq2 * 100) / (totalAb*slimm.references[i].length);
-            uint32_t currentTaxaID = slimm.references[i].taxaID;
-            slimm.taxaID2Abundance[currentTaxaID] = slimm.references[i].relAbundanceUniq2;
-        }
-
-    }
+//    float totalAb = 0.0;
+//    for (uint32_t i=0; i<length(slimm.references); ++i)
+//    {
+//        if (slimm.references[i].noOfUniqReads2 > 0)
+//        {
+//            slimm.references[i].relAbundanceUniq2 = float(slimm.references[i].noOfUniqReads2 * 100)/slimm.uniqHitCount;
+//            totalAb += slimm.references[i].relAbundanceUniq2/slimm.references[i].length;
+//        }
+//        else
+//        {
+//            slimm.references[i].relAbundanceUniq2 = 0.0;
+//        }
+//    }
+//    for (uint32_t i=0; i<length(slimm.references); ++i)
+//    {
+//        if (slimm.references[i].noOfUniqReads2 > 0)
+//        {
+//            slimm.references[i].relAbundanceUniq2 = (slimm.references[i].relAbundanceUniq2 * 100) / (totalAb*slimm.references[i].length);
+//            uint32_t currentTaxaID = slimm.references[i].taxaID;
+//            slimm.taxaID2Abundance[currentTaxaID] = slimm.references[i].relAbundanceUniq2;
+//        }
+//
+//    }
 }
 
 
@@ -1167,19 +1168,19 @@ inline void getReadLCACount(Slimm & slimm,
     
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
-        if (slimm.references[i].noOfReads > 0)
-        {
-            uint32_t currentTaxaID = slimm.references[i].taxaID;
-            float abundance = slimm.taxaID2Abundance[currentTaxaID];
-            while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
-            {
-                if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
-                    slimm.taxaID2Abundance[currentTaxaID] += abundance;
-                else
-                    slimm.taxaID2Abundance[currentTaxaID] = abundance;
-                currentTaxaID = (nodes.at(currentTaxaID)).first;
-            }
-        }
+//        if (slimm.references[i].noOfReads > 0)
+//        {
+//            uint32_t currentTaxaID = slimm.references[i].taxaID;
+//            float abundance = slimm.taxaID2Abundance[currentTaxaID];
+//            while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+//            {
+//                if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
+//                    slimm.taxaID2Abundance[currentTaxaID] += abundance;
+//                else
+//                    slimm.taxaID2Abundance[currentTaxaID] = abundance;
+//                currentTaxaID = (nodes.at(currentTaxaID)).first;
+//            }
+//        }
         if (slimm.references[i].noOfUniqReads2 > 0)
         {
             uint32_t currentTaxaID = slimm.references[i].taxaID;
@@ -1254,7 +1255,7 @@ inline void writeAbundance(Slimm & slimm,
     
     for (auto tID : cladeCov) {
         float relAbundance = cladeAbundance[tID.first]/totalAbundunce;
-        float relAbundance2 = slimm.taxaID2Abundance.at(tID.first);
+//        float relAbundance2 = slimm.taxaID2Abundance.at(tID.first);
         // If the abundance is lower than a threshold do not report it
         // Put the reads under the unkown
         if (relAbundance == 0.0 || tID.second < slimm.covCutoff())
