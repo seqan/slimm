@@ -1219,6 +1219,8 @@ inline void writeAbundance(Slimm & slimm,
     uint32_t unknownReads = slimm.noOfMatched-noReadsAtRank;
     
     uint32_t count = 0;
+    uint32_t faild_count = 0;
+    float faildAbundunce = 0.0;
     TIntFloatMap cladeCov;
     TIntFloatMap cladeAbundance;
     std::vector<float> covValues;
@@ -1242,6 +1244,12 @@ inline void writeAbundance(Slimm & slimm,
             float relAbundance = float(tID.second)/(slimm.noOfMatched) * 100;
             std::unordered_map <uint32_t, std::string>::const_iterator it2 =
             taxaID2name.find (tID.first);
+            if (relAbundance == 0.001 /*|| tID.second < slimm.covCutoff()*/)
+            {
+                faildAbundunce += relAbundance;
+                ++faild_count;
+                continue;
+            }
             seqan::CharString candidateName = "Organism name not found";
             if (it2 != taxaID2name.end())
                 candidateName = (taxaID2name.at(tID.first));
@@ -1254,13 +1262,14 @@ inline void writeAbundance(Slimm & slimm,
             << cov << "\n";
             ++count;
         }
+
     }
-    float unknownAbundance = float(unknownReads)/ slimm.noOfMatched ;
+    float unknownAbundance = float(unknownReads)/ slimm.noOfMatched * 100 + faildAbundunce;
     
     abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
     << unknownReads << "\t" << unknownAbundance << "\t0.0\t0\n";
     abundunceFile.close();
-//    std::cout<< faild_count <<" bellow cutoff ("<< slimm.covCutoff() <<") ...";
+    std::cout<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...";
     
     
     
