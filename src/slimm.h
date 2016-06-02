@@ -1244,7 +1244,7 @@ inline void writeAbundance(Slimm & slimm,
             float relAbundance = float(tID.second)/(slimm.noOfMatched) * 100;
             std::unordered_map <uint32_t, std::string>::const_iterator it2 =
             taxaID2name.find (tID.first);
-            if (relAbundance == 0.001 /*|| tID.second < slimm.covCutoff()*/)
+            if (relAbundance == 0.001 || cov < slimm.covCutoff())
             {
                 faildAbundunce += relAbundance;
                 ++faild_count;
