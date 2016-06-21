@@ -28,7 +28,55 @@ In order to run SLIMM you need the following files which are made available at h
 	<li> the binary executable (slimm) </li>
 	<li> bowtie2 mapper </li>
 </ol>
- 
+
+### Example ###
+
+We assume you have the following folder/file structure in your working directory:
+```
+Working Directory
+  │
+  ├── slimm (slimm binary executable)
+  │
+  ├── bowtie2_indices (indexed reference genomes)
+  ├    ├── AB_complete
+  ├    ├    ├── AB_complete.1.bt2l
+  ├    ├    ├── AB_complete.2.bt2l
+  ├    ├    ├── ...
+  ├    ├── AB_species
+  ├    ├    ├── AB_species.1.bt2l
+  ├    ├    ├── AB_species.2.bt2l
+  ├    ├    ├── ...
+  ├── slimmDB-13192 (SLIMM taxonomic database to be used with AB_species)
+  │
+  ├── slimmDB-4538 (SLIMM taxonomic database to be used with AB_complete)
+  │
+  ├── alignment_files (alignment files will be stored here)
+  │
+  ├── slimm_reports (slimm taxonomic reports will be stored here)
+  │
+  ├── mg_reads (metagenomic sequencing reads) 
+  ├    ├── SRR1748536_1.fastq
+  ├    ├── SRR1748536_2.fastq
+```  
+
+Use bowtie2 to map the metagenomic reads against reference genomes and produce alignment files.
+
+	bowtie2 -x ./AB_species/AB_species -1 ./mg_reads/SRR1748536_1.fastq -2 ./mg_reads/SRR1748536_1.fastq -q --no-unal --mm -p 10 -k 60 -S ./alignment_files/SRR1748536.sam
+
+[recomended] Alternatively we can directly pipe the output to samtools to save it as BAM format. This is faster than just writing into sam files since it avoids a lot of io operations. And SLIMM performs sligtly better on BAM format.
+	
+	bowtie2 -x ./AB_species/AB_species -1 ./mg_reads/SRR1748536_1.fastq -2 ./mg_reads/SRR1748536_1.fastq -q --no-unal --mm -p 10 -k 60 2>./alignment_files/SRR1748536.txt | samtools view -bS - > ./alignment_files/SRR1748536.bam;
+
+Run SLIMM on the output of the read mapper (SAM/BAM files)
+	
+	slimm -m ./slimmDB-13192 ./alignment_files/SRR1748536.bam -o slimm_reports/
+
+you will find two reports under the directory slimm_reports. 
+
+	* SRR1748536.tsv contains raw information about all individual genomes in the database and 
+	* SRR1748536_sp_reported.tsv contains the species that SLIMM reported to be present in the sample.
+
+You can also tell SLIMM to report at lower level of the the taxonomic tree genus family ... (see slimm --help for more details)
 
 <!---
 
