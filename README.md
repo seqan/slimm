@@ -4,9 +4,11 @@ SLIMM - Species Level Identification of Microbes from Metagenomes - Investigates
     Try 'slimm --help' for more information.
 
 VERSION
-    slimm version: 0.1.9
-    SeqAn version: 2.1.1
-    Last update: 2016-04-09_15:20:08_+0200
+
+    * SLIMM version: 0.1
+    * Last update: June 2016
+    
+### How do I get set up? ###
 
 In order to run SLIMM you need the following files which are made available at http://ftp.mi.fu-berlin.de/pub/dadi/slimm/.
 
@@ -26,11 +28,11 @@ In order to run SLIMM you need the following files which are made available at h
 4. bowtie2 mapper
 
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
+[comment]: <> ### Contribution guidelines ###
+[comment]: <> 
+[comment]: <> * Writing tests
+[comment]: <> * Code review
+[comment]: <> * Other guidelines
 
 ### Who do I talk to? ###
 
