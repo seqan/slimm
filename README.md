@@ -27,12 +27,13 @@ In order to run SLIMM you need the following files which are made available at h
 3. the binary executable (slimm)
 4. bowtie2 mapper
 
+<!---
 
-[comment]: <> ### Contribution guidelines ###
-[comment]: <> 
-[comment]: <> * Writing tests
-[comment]: <> * Code review
-[comment]: <> * Other guidelines
+### Contribution guidelines ###
+
+* Writing tests
+* Code review
+* Other guidelines --->
 
 ### Who do I talk to? ###
 
