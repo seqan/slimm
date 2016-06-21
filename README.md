@@ -12,21 +12,23 @@ VERSION
 
 In order to run SLIMM you need the following files which are made available at http://ftp.mi.fu-berlin.de/pub/dadi/slimm/.
 
-1. a bowtie2 index of bacterial and archeal genomes. Here you have two options:
-
-<ol type="a">
-  <li> a reference genome database of 4538 complete bacterial and archial genomes that covers around 2500 different species (AB_complete.tar.gz) </li>
-  <li> a reference genome database of 13192 complete and draft bacterial and archial genomes. Here 1 species is represented by 1 genome. (AB_species.tar.gz)</li>
+<ol type="1">
+	<li> a bowtie2 index of bacterial and archeal genomes. Here you have two options:
+		<ol type="a">	
+			<li> a reference genome database of 4538 complete bacterial and archial genomes that covers around 2500 different species (AB_complete.tar.gz) </li>
+			<li> a reference genome database of 13192 complete and draft bacterial and archial genomes. Here 1 species is represented by 1 genome. (AB_species.tar.gz)</li>
+		</ol>
+	</li>
+	<li> a SLIMM database based on your choice of the reference genome database:
+		<ol type="a">
+	  		<li> slimmDB-4538.tar.gz </li>
+	  		<li> slimmDB-13192.tar.gz </li>
+		</ol>
+	</li>
+	<li> the binary executable (slimm) </li>
+	<li> bowtie2 mapper </li>
 </ol>
-
-2. a SLIMM database based on your choice of the reference genome database
-<ol type="a">
-  <li> slimmDB-4538.tar.gz </li>
-  <li> slimmDB-13192.tar.gz </li>
-</ol>
-	
-3. the binary executable (slimm)
-4. bowtie2 mapper
+ 
 
 <!---
 
