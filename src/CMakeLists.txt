@@ -18,6 +18,10 @@ find_package(ZLIB)
 find_package(BZip2)
 find_package(SeqAn REQUIRED)
 
+if (NOT CXX11_FOUND)
+    message (FATAL_ERROR "  C++11 not found: Not building SLIMM.")
+    return ()
+endif (NOT CXX11_FOUND)
 
 # Do not build without Zlib.
 if (NOT ZLIB_FOUND)
@@ -46,12 +50,9 @@ set (SEQAN_APP_VERSION "0.1.9")
 # Change to approprate compiler flags
 # ----------------------------------------------------------------------------
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX14)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-elseif(COMPILER_SUPPORTS_CXX11)
+if(COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
