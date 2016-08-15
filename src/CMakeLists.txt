@@ -57,7 +57,21 @@ add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 
-seqan_register_apps ()
+
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+# apple does not support fully static builds, but at least libgcc and libstdc++
+if (APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+    message (WARNING "WARNING: Builds on Mac are never fully static.")
+else (APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+endif (APPLE)
+# on linux cmake adds -rdynamic automatically which clang can't handle in static builds
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+endif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+#seqan_register_apps ()
 
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
