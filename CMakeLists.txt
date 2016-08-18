@@ -31,7 +31,7 @@ endif()
 
 set (SEQAN_USE_SEQAN_BUILD_SYSTEM TRUE CACHE INTERNAL "Use SeqAn build system." FORCE)
 include (SeqAnBuildSystem)
-set (SEQAN_ROOT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/" CACHE INTERNAL "Root source directory." FORCE)
+set (SEQAN_ROOT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/include/seqan/" CACHE INTERNAL "Root source directory." FORCE)
 seqan_build_system_init ()
 seqan_get_repository_info ()
 seqan_setup_library ()

@@ -35,6 +35,17 @@
 #ifndef slimm_h
 #define slimm_h
 
+
+#include "timer.h"
+#include "load_mapping_files.h"
+
+
+#include <seqan/basic.h>
+#include <seqan/file.h>
+#include <seqan/sequence.h>
+#include <seqan/arg_parse.h>
+#include <seqan/seq_io.h>
+
 #include <sys/stat.h>
 #include <string>
 #include <iostream>
@@ -46,14 +57,8 @@
 #include <numeric>
 #include <unordered_map>
 
-#include "timer.h"
-#include "load_mapping_files.h"
 
 
-#include <seqan/basic.h>
-#include <seqan/bam_io.h>
-#include <seqan/sequence.h>
-#include <seqan/arg_parse.h>
 
 using namespace seqan;
 typedef StringSet <Dna5String> SequenceList;
@@ -102,6 +107,7 @@ struct AppOptions
     __intSizeBinWidth   minReads        = 100;
     bool                verbose;
     bool                isDirectory;
+    bool                outputRaw;
     std::string         rank            = "species";
     TList               rankList        = {
         "species",
@@ -119,6 +125,7 @@ struct AppOptions
     AppOptions() :
     verbose(false),
     isDirectory(false),
+    outputRaw(false),
     mappingDir("taxonomy/")
     {}
 };
@@ -377,7 +384,6 @@ void Read::addTarget(int32_t rID, uint32_t binNo)
         targets.push_back(TargetRef(rID, binNo));
     }
 }
-
 
 
 // ==========================================================================
@@ -883,14 +889,6 @@ inline void analyzeAlignments(Slimm & slimm,
                     uint32_t binNo = (it->second.targets[i]).positions[j];
                     ++slimm.references[rID].cov.binsHeight[binNo];
                 }
-                // *****                                                    *****
-                
-                
-                
-//                //only the first match will be counted
-//                uint32_t binNo = (it->second.targets[i]).positions[0];
-//                ++slimm.references[rID].noOfReads;
-//                ++slimm.references[rID].cov.binsHeight[binNo];
             }
         }
     }
@@ -953,28 +951,6 @@ inline void filterAlignments(Slimm & slimm)
     uint32_t noOfRefs = length(slimm.references);
     for (uint32_t i=0; i<noOfRefs; ++i)
     {
-
-//        uint32_t factor = 1 + ((slimm.references[i].length - 1) / 1000000);
-//        uint32_t normMinReads = slimm.minReads() *  factor;
-//        uint32_t normUniqMinReads = slimm.minUniqReads() * factor;
-//        if (
-//            slimm.references[i].noOfReads >= normMinReads &&
-//            slimm.references[i].noOfUniqReads >= normUniqMinReads &&
-//            slimm.references[i].uniqCovPercent() >= slimm.covCutoff())
-//        uint32_t factor = 1 + ((slimm.references[i].length - 1) / 1000000);
-//        uint32_t normMinReads = slimm.minReads() *  factor;
-//        uint32_t normUniqMinReads = slimm.minUniqReads() * factor;
-//        if (
-//            slimm.references[i].noOfReads >= normMinReads &&
-//            slimm.references[i].noOfUniqReads >= normUniqMinReads &&
-//            slimm.references[i].uniqCovPercent() >= slimm.covCutoff())
-//            slimm.references[i].noOfReads >= slimm.options.minReads &&
-//            if (slimm.references[i].noOfReads/slimm.references[i].noOfUniqReads >= slimm.noOfMatched/slimm.noOfMatched)
-//            {
-//                slimm.validRefTaxonIDs.insert(i);
-//                slimm.references[i].isValid = true;
-//            }
-        
         
         if (slimm.references[i].noOfReads == 0)
             continue;
@@ -1014,31 +990,6 @@ inline void filterAlignments(Slimm & slimm)
             ++slimm.references[rID].uniqCov2.binsHeight[binNo];
         }
     }
-    
-    
-//    float totalAb = 0.0;
-//    for (uint32_t i=0; i<length(slimm.references); ++i)
-//    {
-//        if (slimm.references[i].noOfUniqReads2 > 0)
-//        {
-//            slimm.references[i].relAbundanceUniq2 = float(slimm.references[i].noOfUniqReads2 * 100)/slimm.uniqHitCount;
-//            totalAb += slimm.references[i].relAbundanceUniq2/slimm.references[i].length;
-//        }
-//        else
-//        {
-//            slimm.references[i].relAbundanceUniq2 = 0.0;
-//        }
-//    }
-//    for (uint32_t i=0; i<length(slimm.references); ++i)
-//    {
-//        if (slimm.references[i].noOfUniqReads2 > 0)
-//        {
-//            slimm.references[i].relAbundanceUniq2 = (slimm.references[i].relAbundanceUniq2 * 100) / (totalAb*slimm.references[i].length);
-//            uint32_t currentTaxaID = slimm.references[i].taxaID;
-//            slimm.taxaID2Abundance[currentTaxaID] = slimm.references[i].relAbundanceUniq2;
-//        }
-//
-//    }
 }
 
 
@@ -1168,19 +1119,7 @@ inline void getReadLCACount(Slimm & slimm,
     
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
-//        if (slimm.references[i].noOfReads > 0)
-//        {
-//            uint32_t currentTaxaID = slimm.references[i].taxaID;
-//            float abundance = slimm.taxaID2Abundance[currentTaxaID];
-//            while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
-//            {
-//                if (slimm.taxaID2Abundance.count(currentTaxaID) >= 1)
-//                    slimm.taxaID2Abundance[currentTaxaID] += abundance;
-//                else
-//                    slimm.taxaID2Abundance[currentTaxaID] = abundance;
-//                currentTaxaID = (nodes.at(currentTaxaID)).first;
-//            }
-//        }
+
         if (slimm.references[i].noOfUniqReads2 > 0)
         {
             uint32_t currentTaxaID = slimm.references[i].taxaID;
@@ -1271,83 +1210,6 @@ inline void writeAbundance(Slimm & slimm,
     abundunceFile.close();
     std::cout<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...";
     
-    
-    
-    
-    
-    
-//    uint32_t unknownReads = slimm.noOfMatched-noReadsAtRank;
-//    uint32_t count = 0;
-//    uint32_t faild_count = 0;
-//    uint32_t totalContributersLength = 0;
-//    float totalAbundunce = 0.0;
-//    TIntFloatMap cladeCov;
-//    TIntFloatMap cladeAbundance;
-//    float totalCov = 0.0;
-//    std::vector<float> covValues;
-//    for (auto tID : slimm.taxaID2ReadCount) {
-//        if (slimm.options.rank == nodes[tID.first].second)
-//        {
-//            uint32_t cLength = 0;
-//            uint32_t noOfContribs = 0;
-//            std::set<uint32_t>::iterator it;
-//            for (it=slimm.taxaID2Children.at(tID.first).begin();
-//                 it!=slimm.taxaID2Children.at(tID.first).end(); ++it)
-//            {
-//                cLength += slimm.references[*it].length;
-//                ++noOfContribs;
-//            }
-//            cLength = cLength/noOfContribs;
-//            cladeCov[tID.first] = float(tID.second * slimm.avgQLength)/cLength;
-//            cladeAbundance[tID.first] =  float(tID.second)/(cLength*slimm.noOfMatched);
-//            totalAbundunce += cladeAbundance[tID.first];
-//            totalContributersLength += cLength;
-//            if(cladeCov[tID.first] > 0.0)
-//                covValues.push_back(cladeCov[tID.first]);
-//            totalCov += cladeCov[tID.first];
-//            ++count;
-//        }
-//    }
-//    float averageContributerLength = float(totalContributersLength)/count;
-//    float unknownAbundance = float(unknownReads)/(averageContributerLength * slimm.noOfMatched);
-//    totalAbundunce += unknownAbundance;
-
-//    count = 1;
-//    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tContributers\tCoverage\n";
-//    
-//    for (auto tID : cladeCov) {
-//        float relAbundance = cladeAbundance[tID.first]/totalAbundunce;
-//        float relAbundance2 = slimm.taxaID2Abundance.at(tID.first);
-        // If the abundance is lower than a threshold do not report it
-        // Put the reads under the unkown
-//        if (relAbundance == 0.0 /*|| tID.second < slimm.covCutoff()*/)
-//        {
-//            unknownReads += slimm.taxaID2ReadCount.at(tID.first);
-//            unknownAbundance += relAbundance;
-//            ++faild_count;
-//            continue;
-//        }
-//        relAbundance *= 100;
-//        std::unordered_map <uint32_t, std::string>::const_iterator it2 =
-//        taxaID2name.find (tID.first);
-//        seqan::CharString candidateName = "Organism name not found";
-//        if (it2 != taxaID2name.end())
-//            candidateName = (taxaID2name.at(tID.first));
-//        abundunceFile   << count << "\t"
-//                        << candidateName << "\t"
-//                        << tID.first << "\t"
-//                        << slimm.taxaID2ReadCount.at(tID.first) << "\t"
-//                        << relAbundance << "\t"
-//                        << slimm.taxaID2Children.at(tID.first).size() << "\t"
-//                        << tID.second << "\n";
-//        ++count;
-//    }
-    
-    // add the remaining  matching reads to unknowns.
-//    abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
-//    << unknownReads << "\t" << unknownAbundance << "\t0.0\t0\n";
-//    abundunceFile.close();
-//    std::cout<< faild_count <<" bellow cutoff ("<< slimm.covCutoff() <<") ...";
 }
 
 void getFilesInDirectory(StringList &inputPaths, std::string directory)

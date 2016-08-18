@@ -33,7 +33,6 @@
 // ==========================================================================
 #include "slimm.h"
 using namespace seqan;
-
 // --------------------------------------------------------------------------
 // Function parseCommandLine()
 // --------------------------------------------------------------------------
@@ -98,6 +97,8 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
     addOption(parser,
               ArgParseOption("d", "directory", "Input is a directory."));
     addOption(parser,
+              ArgParseOption("or", "output-raw", "Output raw reference statstics"));
+    addOption(parser,
               ArgParseOption("v", "verbose", "Enable verbose output."));
     
     // Add Examples Section.
@@ -142,6 +143,9 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
     if (isSet(parser, "directory"))
         options.isDirectory = true;
     
+    if (isSet(parser, "output-raw"))
+        options.outputRaw = true;
+
     getArgumentValue(options.inputPath, parser, 0);
     getOptionValue(options.outputPrefix, parser, "output-prefix");
     
@@ -247,16 +251,16 @@ int main(int argc, char const ** argv)
     {
         Timer<> PerFileStopWatch;
         fileCount ++;
-        CharString curr_file;
+        CharString currFile = value(fileIt);
         
         std::cout<<"================================================\nReading "
         <<fileCount<<" of "<< numFiles<<" files ...\n"
-        <<getFilename(toCString(value(fileIt)))<<"\n";
+        <<getFilename(toCString(currFile))<<"\n";
         // read the original file
         BamFileIn bamFile;
-        if (!open(bamFile, toCString(value(fileIt))))
+        if (!open(bamFile, toCString(currFile)))
         {
-            std::cerr << "Could not open " << toCString(value(fileIt)) << "!\n";
+            std::cerr << "Could not open " << toCString(currFile) << "!\n";
             return 1;
         }
         
@@ -313,7 +317,7 @@ int main(int argc, char const ** argv)
             }
             slimm.options.binWidth = totlaLength/count;
             close(bamFile);
-            open(bamFile, toCString(value(fileIt)));
+            open(bamFile, toCString(currFile));
             readHeader(header, bamFile);
         }
         
@@ -360,10 +364,7 @@ int main(int argc, char const ** argv)
         std::cout << "Coverage Cutoff = " << slimm.covCutoff()
         << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
         std::cout << "UniqCoverage Cutoff = " << slimm.uniqCovCutoff()
-        << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
-//        std::cout << "Minimum read support = " << slimm.options.minReads <<std::endl;
-//        std::cout << "Minimum unique reads support = " << slimm.minUniqReads() << std::endl << std::endl;
-        
+        << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;        
         
         
         std::cout   << "Filtering unlikely sequences ..."  << std::endl ;
@@ -374,27 +375,29 @@ int main(int argc, char const ** argv)
         << " passed the threshould coverage."<< std::endl;
         std::cout << "  " << slimm.failedByCov << " ref's couldn't pass the coverage threshould." << std::endl;
         std::cout << "  " << slimm.failedByUniqCov << " ref's couldn't pass the uniq coverage threshould." << std::endl;
-//        std::cout << "  " << slimm.failedByMinRead << " ref's couldn't pass the minimum reads threshould." << std::endl;
-//        std::cout << "  " << slimm.failedByMinUniqRead << " ref's couldn't pass the minimum uniq reads threshould." << std::endl;
         std::cout << "  Uniquily matching reads increased from "
         << slimm.noOfUniqlyMatched << " to "
         << slimm.noOfUniqlyMatched2 <<std::endl;
         std::cout << "in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
-        std::cout<<"Writing features to a file ..." << std::endl;
-        std::string outputFile = toCString(value(fileIt));
-        if(length(options.outputPrefix) > 0)
+        std::string outputFile = toCString(currFile);
+        std::string tsvFile;
+        
+        if (slimm.options.outputRaw)
         {
-            outputFile = getDirectory(toCString(options.outputPrefix));
-            outputFile.append("/");
-            outputFile.append(getFilename(toCString(options.outputPrefix)));
-            outputFile.append(getFilename(toCString(value(fileIt))));
+            std::cout<<"Writing features to a file ..." << std::endl;
+            if(length(options.outputPrefix) > 0)
+            {
+                outputFile = getDirectory(toCString(options.outputPrefix));
+                outputFile.append("/");
+                outputFile.append(getFilename(toCString(options.outputPrefix)));
+                outputFile.append(getFilename(toCString(currFile)));
+            }
+            tsvFile = getTSVFileName(outputFile);
+            writeToFile(tsvFile, slimm.references, taxaID2name);
+            std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         }
 
-        std::string tsvFile = getTSVFileName(outputFile);
-        writeToFile(tsvFile, slimm.references, taxaID2name);
-        std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
-        
         std::cout<<"Assigning reads to Least Common Ancestor (LCA)" << std::endl;
         getReadLCACount(slimm, nodes);
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;

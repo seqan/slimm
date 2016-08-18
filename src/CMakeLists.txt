@@ -6,7 +6,7 @@
 # CMakeLists.txt file for slimm.
 # ===========================================================================
 
-cmake_minimum_required (VERSION 2.8.2)
+cmake_minimum_required (VERSION 3.0.0)
 project (seqan_apps_slimm)
 message (STATUS "Configuring apps/slimm")
 
@@ -14,9 +14,11 @@ message (STATUS "Configuring apps/slimm")
 # Dependencies
 # ----------------------------------------------------------------------------
 # Search SeqAn and select dependencies.
-find_package(ZLIB)
-find_package(BZip2)
-find_package(SeqAn REQUIRED)
+find_package (OpenMP)
+find_package (ZLIB)
+find_package (BZip2)
+find_package (SeqAn REQUIRED)
+
 
 # Do not build without Zlib.
 if (NOT ZLIB_FOUND)
@@ -57,11 +59,12 @@ add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 
+set(BUILD_SHARED_LIBS ON)
+
+seqan_register_apps ()
+
 # Add CXX flags found by find_package (SeqAn).
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
-
-
-#seqan_register_apps ()
 
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
