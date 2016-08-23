@@ -70,8 +70,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 add_executable(slimm    slimm.cpp
                         slimm.h
                         timer.h
-                        load_mapping_files.h
-                        librf.h)
+                        load_mapping_files.h)
 
 
 # Add dependencies found by find_package (SeqAn).
