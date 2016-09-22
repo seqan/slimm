@@ -14,6 +14,8 @@ parser.add_argument('-s', '--sp', dest='species_lv', action='store_true',
                     help = 'download one reference per species.')
 parser.add_argument('-t', '--threads',  type=int, choices=xrange(1, 11), default = 4, 
                     help = 'number of threads for downloading in parallel in the range 1..10 (default: 4)')
+parser.add_argument('-ts', '--testing',  dest='testing', action='store_true',
+                    help = 'This is a test run work with only few downloads.')
 
 args = parser.parse_args()
 
@@ -22,6 +24,21 @@ working_dir = args.workdir
 groups = args.groups
 only_species = args.species_lv
 db_choice = "refseq"
+testing = args.testing
+parallel        = flow_variables['threads']
+
+
+##############################################################################
+# For KNIME workflow only
+##############################################################################
+# parallel        = flow_variables['threads']
+# working_dir     = flow_variables['workdir']
+# groups          = flow_variables['groups']
+# only_species    = flow_variables['species_lv']
+# db_choice       = flow_variables['database']
+# testing         = flow_variables['testing']
+
+
 old_date_string = ""
 
 exists_genomes_to_download = False
@@ -63,8 +80,10 @@ download_update = False
 if exists_genomes_to_download and exists_genomes and exists_assembly_summary and exists_slimmDB and exists_taxcat and exists_taxdump :
     existing_date = datetime.datetime.strptime(old_date_string, '%d%m%Y')
     diff = datetime.datetime.now() - existing_date
-    download_update = query_yes_no("The database is [" + str(diff.days) + "] days old. Do you realy want to update it?")
+    download_update = diff.days > 0
+    # download_update = query_yes_no("The database is [" + str(diff.days) + "] days old. Do you realy want to update it?")
     if not download_update:
+        print "Database is already uptodate!" 
         sys.exit(0)
     if not os.path.isdir(working_dir + "/.old/"):
         os.makedirs(working_dir + "/.old/")
@@ -77,8 +96,8 @@ else:
     sys.exit(1)
 
 try:
-    today_string = "25082016"
-    # today_string = (datetime.datetime.now()).strftime("%d%m%Y")
+    # today_string = "25082016"
+    today_string = (datetime.datetime.now()).strftime("%d%m%Y")
     genomes_dir = working_dir + "/genomes_" + today_string
     if not os.path.isdir(genomes_dir):
         os.makedirs(genomes_dir)
@@ -322,11 +341,19 @@ try:
 
     print "Updating reference genomes. This might take a while! ..."
     download_queue = Queue.Queue()
+    count = 0
     for ti in updated_urls:
+        if count == 4 and testing:
+            break
+        count += 1
         download_item = [ti, updated_urls[ti]]
         download_queue.put(download_item) # produce
 
+    count = 0
     for ti in added_urls:
+        if count == 4 and testing:
+            break
+        count += 1
         download_item = [ti, added_urls[ti]]
         download_queue.put(download_item) # produce
 

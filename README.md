@@ -1,4 +1,5 @@
-SLIMM - Species Level Identification of Microbes from Metagenomes - Investigates which microbes are present from a BAM/SAM alignment file.
+SLIMM - Species Level Identification of Microbes from Metagenomes - 
+Investigates which microbes are present from a BAM/SAM alignment file.
 =================================================================
     slimm [OPTIONS] "IN" "OUT"
     Try 'slimm --help' for more information.
@@ -63,7 +64,7 @@ Use bowtie2 to map the metagenomic reads against reference genomes and produce a
 
 	bowtie2 -x ./AB_species/AB_species -1 ./mg_reads/SRR1748536_1.fastq -2 ./mg_reads/SRR1748536_1.fastq -q --no-unal --mm -p 10 -k 60 -S ./alignment_files/SRR1748536.sam
 
-[recomended] Alternatively we can directly pipe the output to samtools to save it as BAM format. This is faster than just writing into sam files since it avoids a lot of io operations. And SLIMM performs sligtly better on BAM format.
+[recomended] Alternatively we can directly pipe the output to samtools to save it as BAM format. This is even faster than just writing into SAM files since it avoids a lot of IO operations. And SLIMM performs sligtly better on BAM format.
 	
 	bowtie2 -x ./AB_species/AB_species -1 ./mg_reads/SRR1748536_1.fastq -2 ./mg_reads/SRR1748536_1.fastq -q --no-unal --mm -p 10 -k 60 2>./alignment_files/SRR1748536.txt | samtools view -bS - > ./alignment_files/SRR1748536.bam;
 

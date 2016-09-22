@@ -16,6 +16,8 @@ parser.add_argument('-t', '--threads',  type=int, choices=xrange(1, 11), default
                     help = 'number of threads for downloading in parallel in the range 1..10 (default: 4)')
 parser.add_argument('-d', '--database', type=str, choices = ['refseq', 'genbank'], default = 'refseq', 
                     help = 'From which database references should be downloaded  (default: refseq)')
+parser.add_argument('-ts', '--testing',  dest='testing', action='store_true',
+                    help = 'This is a test run work with only few downloads.')
 
 
 args = parser.parse_args()
@@ -25,6 +27,19 @@ working_dir = args.workdir
 groups = args.groups
 only_species = args.species_lv
 db_choice = args.database
+testing = args.testing
+
+
+##############################################################################
+# For KNIME workflow only
+##############################################################################
+# parallel        = flow_variables['threads']
+# working_dir     = flow_variables['workdir']
+# groups          = flow_variables['groups']
+# only_species    = flow_variables['species_lv']
+# db_choice       = flow_variables['database']
+# testing         = flow_variables['testing']
+
 
 if not os.path.isdir(working_dir):
     os.makedirs(working_dir)
@@ -32,10 +47,9 @@ else:
     empty = os.listdir(working_dir) == []; 
     if not empty: 
         print ("[ERROR!] Working directory [" + working_dir + "] should be empty!")
-        # sys.exit(0)
+        sys.exit(0)
 
-today_string = "25082016"
-# today_string = (datetime.datetime.now()).strftime("%d%m%Y")
+today_string = (datetime.datetime.now()).strftime("%d%m%Y")
 genomes_dir = working_dir + "/genomes_" + today_string
 if not os.path.isdir(genomes_dir):
     os.makedirs(genomes_dir)
@@ -221,13 +235,12 @@ download_queue = Queue.Queue()
 inpf = open(genomes_to_download_path, 'r')
 
 # DELETE FOR TESTING ONLY 
-# count = 0
 # for line in inpf:
-#     if count == 96:
-#         break
-#     count += 1
-
+count = 0
 for line in inpf:
+    if count == 50 and testing:
+        break
+    count += 1
     l = (line.strip()).split("\t")
     download_item = [l[0], l[4]]
     download_queue.put(download_item) # produce
