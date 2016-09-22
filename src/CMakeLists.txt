@@ -94,7 +94,7 @@ if (SLIMM_STATIC_BUILD)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
     # apple does not support fully static builds, but at least libgcc and libstdc++
     if (APPLE)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
         message (WARNING "WARNING: Builds on Mac are never fully static.")
     else (APPLE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
