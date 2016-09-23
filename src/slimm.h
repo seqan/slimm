@@ -555,22 +555,32 @@ std::string getDirectory (const std::string& str)
     return str.substr(0,found);
 }
 
-std::string getTSVFileName (const std::string& fName)
+std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfName)
 {
-    std::string result = fName;
-    if(fName.find(".sam") == fName.find_last_of(".") ||
-       fName.find(".bam")  == fName.find_last_of(".") )
+    std::cout <<  "oPrefix: " << oPrefix << std::endl; 
+    std::cout <<  "inpfName: " << inpfName << std::endl; 
+    std::string result = getDirectory(oPrefix);
+    result.append("/");
+    if (length(getFilename(oPrefix)) > 0)
+        result.append(getFilename(oPrefix));
+    else
+        result.append(getFilename(inpfName));
+    if( (result.find(".sam") != std::string::npos) && 
+            (result.find(".sam") == result.find_last_of(".") ||
+            result.find(".bam")  == result.find_last_of(".") 
+        ))
         result.replace((result.find_last_of(".")), 4, "");
     result.append(".tsv");
     return result;
 }
 
-std::string getTSVFileName (const std::string& fName, const std::string& rank)
+std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfName, const std::string& rank)
 {
-    std::string sfx = "_sp_reported";
+    std::string fName = getTSVFileName(oPrefix, inpfName);
+    std::string sfx = ".sp_reported";
     if (rank != "species")
-        sfx = "_" + rank + "_reported";
-    return (getTSVFileName(fName)).insert(fName.size()-4, sfx);
+        sfx = "." + rank + "_reported";
+    return fName.insert(fName.size()-4, sfx);
 }
 
 // ----------------------------------------------------------------------------
@@ -579,6 +589,7 @@ std::string getTSVFileName (const std::string& fName, const std::string& rank)
 
 void setDateAndVersion(ArgumentParser & parser)
 {
+    setShortDescription(parser, "Species Level Identification of Microbes from Metagenomes");
     setCategory(parser, "Metagenomics");
 #if defined(SEQAN_APP_VERSION) && defined(SEQAN_REVISION)
     setVersion(parser, SEQAN_APP_VERSION " [" SEQAN_REVISION "]");

@@ -53,14 +53,14 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
     // The output file argument.
     addOption(parser,
               ArgParseOption("o", "output-prefix", "output path prefix.",
-                             ArgParseArgument::OUTPUT_FILE, "OUT"));
+                             ArgParseArgument::OUTPUT_PREFIX));
     addOption(parser,
               ArgParseOption("m",
                              "mapping-files",
                              "directory containing various mapping files "
                              "(gi2taxaID.map nodes_reduced.map "
                              "names_reduced.map taxaIDFeatures.map).",
-                             ArgParseArgument::INPUT_FILE, "MAP-DIR"));
+                             ArgParseOption::STRING));
     
     addOption(parser,
               ArgParseOption("w",
@@ -147,7 +147,11 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
         options.outputRaw = true;
 
     getArgumentValue(options.inputPath, parser, 0);
+
     getOptionValue(options.outputPrefix, parser, "output-prefix");
+    if (!isSet(parser, "output-prefix"))
+        options.outputPrefix = toCString(options.inputPath);
+
     
     return ArgumentParser::PARSE_OK;
 }
@@ -347,20 +351,11 @@ int main(int argc, char const ** argv)
         << slimm.noOfUniqlyMatched2 <<std::endl;
         std::cout << "in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
-        std::string outputFile = toCString(currFile);
         std::string tsvFile;
-        
         if (slimm.options.outputRaw)
         {
             std::cout<<"Writing features to a file ..." << std::endl;
-            if(length(options.outputPrefix) > 0)
-            {
-                outputFile = getDirectory(toCString(options.outputPrefix));
-                outputFile.append("/");
-                outputFile.append(getFilename(toCString(options.outputPrefix)));
-                outputFile.append(getFilename(toCString(currFile)));
-            }
-            tsvFile = getTSVFileName(outputFile);
+            tsvFile = getTSVFileName(toCString(options.outputPrefix), toCString(currFile));
             writeToFile(tsvFile, slimm.references, taxaID2name);
             std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         }
@@ -370,7 +365,7 @@ int main(int argc, char const ** argv)
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
         std::cout<<"Writing taxnomic profile to a file ..." << std::endl;
-        tsvFile = getTSVFileName(outputFile, slimm.options.rank);
+        tsvFile = getTSVFileName(toCString(options.outputPrefix), toCString(currFile), slimm.options.rank);
         writeAbundance(slimm, nodes, taxaID2name, tsvFile) ;
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
@@ -379,9 +374,7 @@ int main(int argc, char const ** argv)
     }
     
     
-    CharString output_directory = getDirectory(toCString(options.inputPath)) ;
-    if(length(options.outputPrefix) > 0)
-        output_directory = getDirectory(toCString(options.outputPrefix));
+    CharString output_directory = getDirectory(toCString(options.outputPrefix));
     
     std::cout << "================================================" << std::endl
     << "================================================" << std::endl << std::endl;
