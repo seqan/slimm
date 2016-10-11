@@ -557,8 +557,6 @@ std::string getDirectory (const std::string& str)
 
 std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfName)
 {
-    std::cout <<  "oPrefix: " << oPrefix << std::endl; 
-    std::cout <<  "inpfName: " << inpfName << std::endl; 
     std::string result = getDirectory(oPrefix);
     result.append("/");
     if (length(getFilename(oPrefix)) > 0)
