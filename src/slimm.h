@@ -587,13 +587,11 @@ std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfN
 
 void setDateAndVersion(ArgumentParser & parser)
 {
+    setDate(parser, __DATE__);
     setShortDescription(parser, "Species Level Identification of Microbes from Metagenomes");
     setCategory(parser, "Metagenomics");
 #if defined(SEQAN_APP_VERSION) && defined(SEQAN_REVISION)
     setVersion(parser, SEQAN_APP_VERSION " [" SEQAN_REVISION "]");
-#endif
-#if defined(SEQAN_DATE)
-    setDate(parser, SEQAN_DATE);
 #endif
 }
 
