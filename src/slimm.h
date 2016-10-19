@@ -853,7 +853,8 @@ inline void analyzeAlignments(Slimm & slimm,
         ++slimm.hitCount;
     }
     
-    
+    if (slimm.hitCount == 0)
+        return;
     
     __intSizeGLength concatQLength = 0;
 
