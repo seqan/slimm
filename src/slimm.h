@@ -1214,7 +1214,7 @@ inline void writeAbundance(Slimm & slimm,
     float unknownAbundance = float(unknownReads)/ slimm.noOfMatched * 100 + faildAbundunce;
     
     abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
-    << unknownReads << "\t" << unknownAbundance << "\t0.0\t0\n";
+    << unknownReads << "\t" << unknownAbundance << "\t0\t0.0\n";
     abundunceFile.close();
     std::cout<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...";
     
