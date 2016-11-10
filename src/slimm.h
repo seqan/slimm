@@ -257,9 +257,7 @@ class Read
 public:
     std::vector<TargetRef>          targets;
     uint32_t                        sumRefLengths = 0;
-    uint32_t                        len = 0;
-    
-    
+
     //checks if all the match points are in the same sequence
     bool isUniq();
     
@@ -847,9 +845,9 @@ inline void analyzeAlignments(Slimm & slimm,
         readRecord(record, bamFile);
         if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
-        
-        uint32_t queryLen = length(record.seq);
-        uint32_t relativeBinNo = (record.beginPos + (queryLen/2))/slimm.options.binWidth;
+
+
+        uint32_t relativeBinNo = (record.beginPos + (slimm.avgQLength/2))/slimm.options.binWidth;
         // maintain read properties under slimm.reads
         std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
@@ -858,16 +856,15 @@ inline void analyzeAlignments(Slimm & slimm,
             append(readName, ".2");
 //      if there is no read with readName this will create one.
         slimm.reads[readName].addTarget(record.rID, relativeBinNo);
-        slimm.reads[readName].len = queryLen;
         ++slimm.hitCount;
     }
     
+    slimm.noOfMatched = slimm.reads.size();
     if (slimm.hitCount != 0)
     {
-        __intSizeGLength concatQLength = 0;
+        __intSizeGLength concatQLength = slimm.avgQLength * slimm.noOfMatched;
         for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
         {
-            concatQLength += it->second.len;
             if(it->second.isUniq(slimm.matchedTaxa))
             {
                 __int32 rID = it->second.targets[0].rID;
@@ -906,7 +903,6 @@ inline void analyzeAlignments(Slimm & slimm,
                 }
             }
         }
-        slimm.noOfMatched = slimm.reads.size();
 
         std::vector<float> covValues;
         slimm.avgQLength = concatQLength/slimm.noOfMatched;
