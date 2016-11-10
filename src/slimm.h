@@ -868,7 +868,7 @@ inline void analyzeAlignments(Slimm & slimm,
             if(it->second.isUniq(slimm.matchedTaxa))
             {
                 __int32 rID = it->second.targets[0].rID;
-                it->second.sumRefLengths += slimm.references[record.rID].length;
+                it->second.sumRefLengths += slimm.references[rID].length;
                 ++slimm.noOfUniqlyMatched;
 
                 size_t pos_count = (it->second.targets[0]).positions.size();
