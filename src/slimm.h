@@ -571,10 +571,8 @@ std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfN
         result.append(getFilename(oPrefix));
     else
         result.append(getFilename(inpfName));
-    if( (result.find(".sam") != std::string::npos) && 
-            (result.find(".sam") == result.find_last_of(".") ||
-            result.find(".bam")  == result.find_last_of(".") 
-        ))
+    if ((result.find(".sam") != std::string::npos && result.find(".sam") == result.find_last_of(".")) ||
+       (result.find(".bam") != std::string::npos && result.find(".bam")  == result.find_last_of(".")))
         result.replace((result.find_last_of(".")), 4, "");
     result.append(".tsv");
     return result;
@@ -585,7 +583,7 @@ std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfN
     std::string fName = getTSVFileName(oPrefix, inpfName);
     std::string sfx = ".sp_reported";
     if (rank != "species")
-        sfx = "." + rank + "_reported";
+        sfx = "_" + rank + "_reported";
     return fName.insert(fName.size()-4, sfx);
 }
 
