@@ -103,6 +103,7 @@ struct AppOptions
     typedef std::vector<std::string>            TList;
     
     TList               rankList        = {
+        "all",
         "species",
         "genus",
         "family",
@@ -130,7 +131,7 @@ struct AppOptions
     verbose(false),
     isDirectory(false),
     outputRaw(false),
-    rank("species"),
+    rank("all"),
     mappingDir("taxonomy/")
     {}
 };
@@ -581,9 +582,7 @@ std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfN
 std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfName, const std::string& rank)
 {
     std::string fName = getTSVFileName(oPrefix, inpfName);
-    std::string sfx = ".sp_reported";
-    if (rank != "species")
-        sfx = "_" + rank + "_reported";
+    std::string sfx = "_" + rank + "_reported";
     return fName.insert(fName.size()-4, sfx);
 }
 
@@ -1151,25 +1150,20 @@ inline void getReadLCACount(Slimm & slimm,
     }
 }
 
+
 inline void writeAbundance(Slimm & slimm,
-                           TNodes & nodes, TIntStrMap const & taxaID2name,
-                           std::string const & filePath)
+                           TNodes & nodes,
+                           TIntStrMap const & taxaID2name,
+                           uint32_t const & noReadsAtRank,
+                           std::string const & currFile,
+                           std::string const & rank)
 {
+
+    std::string tsvFile = getTSVFileName(toCString(slimm.options.outputPrefix), currFile, rank);
     std::ofstream abundunceFile;
-    abundunceFile.open(filePath);
-        
-    // calculate the total number of reads matching uniquily at that species level.
-    uint32_t noReadsAtRank = 0;
-    for (auto tID : slimm.taxaID2ReadCount) {
-        if (slimm.options.rank == nodes[tID.first].second)
-        {
-            noReadsAtRank +=  tID.second ;
-        }
-    }
-    
-    
+    abundunceFile.open(tsvFile);
+
     uint32_t unknownReads = slimm.noOfMatched-noReadsAtRank;
-    
     uint32_t count = 0;
     uint32_t faild_count = 0;
     float faildAbundunce = 0.0;
@@ -1179,7 +1173,7 @@ inline void writeAbundance(Slimm & slimm,
     count = 1;
     abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tContributers\tCoverage\n";
     for (auto tID : slimm.taxaID2ReadCount) {
-        if (slimm.options.rank == nodes[tID.first].second)
+        if (rank == nodes[tID.first].second)
         {
             uint32_t cLength = 0;
             uint32_t noOfContribs = 0;
@@ -1217,14 +1211,40 @@ inline void writeAbundance(Slimm & slimm,
 
     }
     float unknownAbundance = float(unknownReads)/ slimm.noOfMatched * 100 + faildAbundunce;
-    
-    abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
+
+    abundunceFile   << count << "\tunknown_"<< rank<< "(multiple)" << "\t0\t"
     << unknownReads << "\t" << unknownAbundance << "\t0\t0.0\n";
     abundunceFile.close();
-    std::cout<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...";
-    
+    std::cout<< std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...\n";
 }
 
+
+inline void writeAbundance(Slimm & slimm, TNodes & nodes, TIntStrMap const & taxaID2name, std::string const & currFile)
+{
+    std::vector<std::string> allRanks= {"species", "genus", "family", "order", "class", "phylum", "superkingdom"};
+    std::vector<std::string> consideredRanks;
+    if(slimm.options.rank == "all")
+    {
+        consideredRanks = allRanks;
+    }
+    else
+    {
+        consideredRanks.push_back(slimm.options.rank);
+    }
+
+
+    // calculate the total number of reads matching uniquily at that species level.
+    std::map<std::string, uint32_t>  noReadsAtRank;
+    for (auto tID : slimm.taxaID2ReadCount)
+    {
+            noReadsAtRank[nodes[tID.first].second] +=  tID.second ;
+    }
+
+    for (std::string rank : consideredRanks)
+    {
+        writeAbundance(slimm, nodes, taxaID2name, noReadsAtRank[rank], currFile, rank);
+    }
+}
 void getFilesInDirectory(StringList &inputPaths, std::string directory)
 {
 #ifdef WINDOWS

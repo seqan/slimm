@@ -12,7 +12,7 @@
 
 # change this after every release
 set (SEQAN_APP_VERSION_MAJOR "0")
-set (SEQAN_APP_VERSION_MINOR "2")
+set (SEQAN_APP_VERSION_MINOR "3")
 set (SEQAN_APP_VERSION_PATCH "0")
 
 # don't change the following
@@ -26,7 +26,7 @@ set (SEQAN_APP_VERSION "${SEQAN_APP_VERSION_MAJOR}.${SEQAN_APP_VERSION_MINOR}.${
 find_package(OpenMP QUIET)
 find_package(ZLIB   QUIET)
 find_package(BZip2  QUIET)
-find_package(SeqAn  QUIET REQUIRED)
+find_package(SeqAn  QUIET REQUIRED CONFIG)
 set (SEQAN_FIND_DEPENDENCIES ZLIB BZip2)
 
 message(STATUS "These dependencies where found:")

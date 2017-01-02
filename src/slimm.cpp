@@ -370,16 +370,14 @@ int main(int argc, char const ** argv)
         getReadLCACount(slimm, nodes);
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
-        std::cout<<"Writing taxnomic profile to a file ..." << std::endl;
-        tsvFile = getTSVFileName(toCString(options.outputPrefix), toCString(currFile), slimm.options.rank);
-        writeAbundance(slimm, nodes, taxaID2name, tsvFile) ;
+        std::cout<<"Writing taxnomic profile(s) ..." << std::endl;
+        writeAbundance(slimm, nodes, taxaID2name, toCString(currFile));
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
         std::cout<<"File took " << PerFileStopWatch.elapsed()
         <<" secs to process." << std::endl;
     }
-    
-    
+
     CharString output_directory = getDirectory(toCString(options.outputPrefix));
     
     std::cout << "================================================" << std::endl
