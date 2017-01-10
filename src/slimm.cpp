@@ -316,41 +316,47 @@ int main(int argc, char const ** argv)
         std::cout<<"Analysing alignments, reads and references ..."<< std::endl;
         
         analyzeAlignments(slimm, bamFile);
-        
-        std::cout << "  " <<  slimm.hitCount << " records processed." << std::endl;
-        std::cout << "    " << slimm.noOfMatched << " matching reads" << std::endl;
-        std::cout << "    " << slimm.noOfUniqlyMatched << " uniquily matching reads"<< std::endl;
-        
-        totalRecCount += slimm.noOfMatched;
-        std::cout<<"in " << PerFileStopWatch.lap() <<" secs " << std::endl << std::endl;
-        
-        
-        // Set the minimum reads to 10k-th of the total number of matched reads if not set by the user
-        if (!isSet(parser, "min-reads"))
-            slimm.options.minReads = 1 + ((slimm.noOfMatched - 1) / 10000);
-        
-        
-        std::cout << "Number of Ref with reads = " << slimm.noOfRefs << std::endl;
-        std::cout << "Expected Coverage = " << slimm.expCov() <<std::endl;
-        std::cout << "Coverage Cutoff = " << slimm.covCutoff()
-        << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
-        std::cout << "UniqCoverage Cutoff = " << slimm.uniqCovCutoff()
-        << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;        
-        
-        
-        std::cout   << "Filtering unlikely sequences ..."  << std::endl ;
-        
-        filterAlignments(slimm);
-        
-        std::cout << "  " << length(slimm.validRefTaxonIDs)
-        << " passed the threshould coverage."<< std::endl;
-        std::cout << "  " << slimm.failedByCov << " ref's couldn't pass the coverage threshould." << std::endl;
-        std::cout << "  " << slimm.failedByUniqCov << " ref's couldn't pass the uniq coverage threshould." << std::endl;
-        std::cout << "  Uniquily matching reads increased from "
-        << slimm.noOfUniqlyMatched << " to "
-        << slimm.noOfUniqlyMatched2 <<std::endl;
-        std::cout << "in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
-        
+        if (slimm.hitCount > 0)
+        {
+            std::cout << "  " <<  slimm.hitCount << " records processed." << std::endl;
+            std::cout << "    " << slimm.noOfMatched << " matching reads" << std::endl;
+            std::cout << "    " << slimm.noOfUniqlyMatched << " uniquily matching reads"<< std::endl;
+            
+            totalRecCount += slimm.noOfMatched;
+            std::cout<<"in " << PerFileStopWatch.lap() <<" secs " << std::endl << std::endl;
+            
+            
+            // Set the minimum reads to 10k-th of the total number of matched reads if not set by the user
+            if (!isSet(parser, "min-reads"))
+                slimm.options.minReads = 1 + ((slimm.noOfMatched - 1) / 10000);
+            
+            
+            std::cout << "Number of Ref with reads = " << slimm.noOfRefs << std::endl;
+            std::cout << "Expected Coverage = " << slimm.expCov() <<std::endl;
+            std::cout << "Coverage Cutoff = " << slimm.covCutoff()
+            << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;
+            std::cout << "UniqCoverage Cutoff = " << slimm.uniqCovCutoff()
+            << " (" << slimm.options.covCutOff <<" quantile)"<< std::endl;        
+            
+            
+            std::cout   << "Filtering unlikely sequences ..."  << std::endl ;
+            
+            filterAlignments(slimm);
+            
+            std::cout << "  " << length(slimm.validRefTaxonIDs)
+            << " passed the threshould coverage."<< std::endl;
+            std::cout << "  " << slimm.failedByCov << " ref's couldn't pass the coverage threshould." << std::endl;
+            std::cout << "  " << slimm.failedByUniqCov << " ref's couldn't pass the uniq coverage threshould." << std::endl;
+            std::cout << "  Uniquily matching reads increased from "
+            << slimm.noOfUniqlyMatched << " to "
+            << slimm.noOfUniqlyMatched2 <<std::endl;
+            std::cout << "in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
+        }
+        else
+        {
+            std::cout << "[WARNING] No mapped reads found in BAM file!" << std::endl;
+        }
+
         std::string tsvFile;
         if (slimm.options.outputRaw)
         {

@@ -117,8 +117,9 @@ for line in inpf:
         taxid = int(l[taxid_col])
         path = l[19].replace("\n", "")
         if (taxid in intial_taxids and (path != 'na') and l[10] == "latest") :
-            fname = path.replace("ftp://ftp.ncbi.nlm.nih.gov/genomes/all/", "")
-            complete_path = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/" + fname + "/" + fname + "_genomic.fna.gz"
+            complete_path = path + path[path.rfind('/'):] + "_genomic.fna.gz"
+            # fname = path.replace("ftp://ftp.ncbi.nlm.nih.gov/genomes/all/", "")           
+            # complete_path = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/" + fname + "/" + fname + "_genomic.fna.gz"
             if taxid in taxid_genomes :
                 taxid_genomes[taxid].append([l[11], l[13], complete_path, l[6], l[4]])
             else:
