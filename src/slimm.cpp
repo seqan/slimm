@@ -150,7 +150,7 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
 
     getOptionValue(options.outputPrefix, parser, "output-prefix");
     if (!isSet(parser, "output-prefix"))
-        options.outputPrefix = toCString(options.inputPath);
+        options.outputPrefix = options.inputPath;
 
     
     return ArgumentParser::PARSE_OK;
@@ -176,12 +176,12 @@ int main(int argc, char const ** argv)
         return res == ArgumentParser::PARSE_ERROR;
     
     // Prepare the
-    StringList inputPaths;
+    std::vector<std::string> inputPaths;
     uint32_t numFiles = 1, totalRecCount = 0, fileCount = 0;
     if (options.isDirectory)
     {
         
-        getFilesInDirectory(inputPaths, toCString(options.inputPath));
+        getFilesInDirectory(inputPaths, options.inputPath);
         numFiles = length(inputPaths);
         std::cout << numFiles << ": SAM/BAM Files found under the directory: "
         << options.inputPath <<"! \n" ;
@@ -189,7 +189,8 @@ int main(int argc, char const ** argv)
     else
     {
         if (is_file(toCString(options.inputPath)))
-            appendValue(inputPaths, toCString(options.inputPath));
+            inputPaths.push_back(options.inputPath);
+//           appendValue(inputPaths, options.inputPath);
         else
         {
             std::cout << options.inputPath
@@ -198,9 +199,7 @@ int main(int argc, char const ** argv)
         }
     }
     
-    Iterator<StringList>::Type fileIt = begin(inputPaths);
-    Iterator<StringList>::Type itEnd = end(inputPaths);
-    
+
     std::stringstream ss;
     std::ofstream sam_extract_file;
     
@@ -208,18 +207,15 @@ int main(int argc, char const ** argv)
     std::vector<std::string> uniqueReadsByTaxid;
     
     
-    CharString nodes_path, names_path;
-    nodes_path = names_path = options.mappingDir;
-    
-    append(nodes_path, "/nodes.dmp");
-    append(names_path, "/names.dmp");
+    std::string nodes_path = options.mappingDir + "/nodes.dmp";
+    std::string names_path = options.mappingDir + "/names.dmp";
     
     Timer<> MainStopWatch;
     // ============get the taxaID2name mapping ================
     std::cout<<"Loding taxaID2name mapping ... ";
     TIntStrMap taxaID2name;
     
-    taxaID2name =  loadMappingInt2String<TIntStrMap, CharString>(names_path);
+    taxaID2name =  loadMappingInt2String<TIntStrMap, std::string>(names_path);
     std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" << std::endl << std::endl;
     // ============get the node mapping ================
     std::cout<<"Loding node mapping ... " <<std::endl;
@@ -229,20 +225,19 @@ int main(int argc, char const ** argv)
     std::cout<<"in " << MainStopWatch.lap() <<" secs [OK!]" << std::endl << std::endl;
     
   
-    for(; fileIt != itEnd; goNext(fileIt))
+    for(std::string currFile : inputPaths)
     {
         Timer<> PerFileStopWatch;
         fileCount ++;
-        CharString currFile = value(fileIt);
-        
+
         std::cout<<"================================================\nReading "
         <<fileCount<<" of "<< numFiles<<" files ...\n"
-        <<getFilename(toCString(currFile))<<"\n";
+        <<getFilename(currFile)<<"\n";
         // read the original file
         BamFileIn bamFile;
         if (!open(bamFile, toCString(currFile)))
         {
-            std::cerr << "Could not open " << toCString(currFile) << "!\n";
+            std::cerr << "Could not open " << currFile << "!\n";
             return 1;
         }
         
@@ -276,22 +271,25 @@ int main(int argc, char const ** argv)
             }
         }
 
-        BamAlignmentRecord record;
         if (slimm.options.binWidth == 0) //if binWidth is not given use avg read length
         {
+            BamAlignmentRecord record;
             uint32_t count = 0, totlaLength = 0;
-            while (!atEnd(bamFile) && count < 100)
+            while (!atEnd(bamFile) && count < 1000)
             {
                 readRecord(record, bamFile);
                 totlaLength += length(record.seq);
                 ++count;
             }
             slimm.options.binWidth = totlaLength/count;
-            close(bamFile);
-            open(bamFile, toCString(currFile));
-            readHeader(header, bamFile);
         }
-        
+
+        //reset the bamFile to the first recored by closing and reopening
+        close(bamFile);
+
+        open(bamFile, toCString(currFile));
+        readHeader(header, bamFile);
+
         for (uint32_t i=0; i<noOfRefs; ++i)
         {
             ReferenceContig current_ref;
@@ -357,11 +355,10 @@ int main(int argc, char const ** argv)
             std::cout << "[WARNING] No mapped reads found in BAM file!" << std::endl;
         }
 
-        std::string tsvFile;
         if (slimm.options.outputRaw)
         {
             std::cout<<"Writing features to a file ..." << std::endl;
-            tsvFile = getTSVFileName(toCString(options.outputPrefix), toCString(currFile));
+            std::string tsvFile = getTSVFileName(options.outputPrefix, currFile);
             writeToFile(tsvFile, slimm.references, taxaID2name);
             std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         }
@@ -371,23 +368,23 @@ int main(int argc, char const ** argv)
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
         std::cout<<"Writing taxnomic profile(s) ..." << std::endl;
-        writeAbundance(slimm, nodes, taxaID2name, toCString(currFile));
+        writeAbundance(slimm, nodes, taxaID2name, currFile);
         std::cout<<"in " << PerFileStopWatch.lap() <<" secs [OK!]"  << std::endl << std::endl;
         
         std::cout<<"File took " << PerFileStopWatch.elapsed()
         <<" secs to process." << std::endl;
     }
 
-    CharString output_directory = getDirectory(toCString(options.outputPrefix));
+    std::string output_directory = getDirectory(options.outputPrefix);
     
     std::cout << "================================================" << std::endl
     << "================================================" << std::endl << std::endl;
     std::cout << totalRecCount
     << " SAM/BAM alignment records are proccessed."<<std::endl;
     std::cout << "extracted features are written to: "
-    << output_directory<<std::endl;
+    << output_directory <<std::endl;
     std::cout << "Total tame elapsed: "
     << MainStopWatch.elapsed() <<" secs"<<std::endl;
-    
+
     return 0;
 }
