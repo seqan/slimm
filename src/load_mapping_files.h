@@ -36,7 +36,7 @@ template <typename TTarget, typename TString>
 TTarget loadMappingInt2String(TString const & filePath)
 {
     TTarget result;
-    std::ifstream nameMap(toCString(filePath));
+    std::ifstream nameMap(filePath);
     uint32_t key;
     std::string value,  line;
     
@@ -56,7 +56,7 @@ template <typename TTarget, typename TString, typename TKey = uint32_t,
             typename TValue1 = uint32_t, typename TValue2 = std::string>
 void loadNodes(TTarget & target, TString const & filePath)
 {
-    std::ifstream nodeMap(toCString(filePath));
+    std::ifstream nodeMap(filePath);
     std::string   line;
     
     while(std::getline(nodeMap, line))

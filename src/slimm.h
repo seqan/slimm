@@ -53,7 +53,6 @@
 #include <map>
 #include <stdio.h>
 #include <stdlib.h>
-#include <cmath>
 #include <numeric>
 #include <unordered_map>
 
@@ -61,13 +60,11 @@
 
 
 using namespace seqan;
+
 typedef StringSet <Dna5String> SequenceList;
 typedef StringSet <CharString> StringList;
 typedef std::unordered_map <uint32_t, std::pair<uint32_t, std::string> > TNodes;
 
-
-template <typename T1 = void, typename T2 = void>
-struct Limits;
 
 typedef StringSet <Dna5String>                              SequenceList;
 typedef StringSet <CharString>                              StringList;
@@ -78,6 +75,7 @@ typedef __uint32                                            __intSizeQCount;
 typedef __uint32                                            __intSizeGLength;
 typedef __uint16                                            __intSizeQLength;
 typedef __uint32                                            __intSizeMatchCount;
+
 typedef StringSet<String<__intSizeMatchCount> >             TMatchSet;
 typedef std::pair<__int32, uint32_t>                        TMatchPoint;
 typedef std::unordered_map <uint32_t, uint32_t>             TIntIntMap;
@@ -103,6 +101,7 @@ struct AppOptions
     typedef std::vector<std::string>            TList;
     
     TList               rankList        = {
+        "all",
         "species",
         "genus",
         "family",
@@ -119,9 +118,9 @@ struct AppOptions
     bool                isDirectory;
     bool                outputRaw;
     std::string         rank;
-    CharString          inputPath;
-    CharString          outputPrefix;
-    CharString          mappingDir;
+    std::string         inputPath;
+    std::string         outputPrefix;
+    std::string         mappingDir;
     
     AppOptions() :
     covCutOff(0.99),
@@ -130,7 +129,9 @@ struct AppOptions
     verbose(false),
     isDirectory(false),
     outputRaw(false),
-    rank("species"),
+    rank("all"),
+    inputPath(""),
+    outputPrefix(""),
     mappingDir("taxonomy/")
     {}
 };
@@ -168,16 +169,15 @@ public:
     std::vector <uint32_t>      binsHeight;
     
     Coverage():
-    binWidth(1000),
+    binWidth(0),
     noOfBins(0)
     {}
     
     Coverage(uint32_t totalLen, uint32_t width)
     {
         binWidth = width;
-        noOfBins = totalLen/width + ((totalLen/width)*width < totalLen);
-        std::vector<uint32_t> tmp (noOfBins, 0);
-        binsHeight = tmp;
+        noOfBins = totalLen/width + 1;
+        binsHeight.resize(noOfBins, 0);
     }
     uint32_t noOfNonZeroBins()
     {
@@ -200,7 +200,7 @@ class ReferenceContig
     float _uniqCovDepth2 = -1;
 public:
     CharString          refName;
-    bool                isValid = false;
+    bool                isValid;
     uint32_t            length;
     uint32_t            noOfReads;
     uint32_t            noOfUniqReads;
@@ -214,6 +214,8 @@ public:
     float               relAbundanceUniq2;
     
     ReferenceContig():
+    refName(""),
+    isValid(false),
     length(0),
     noOfReads(0),
     noOfUniqReads(0),
@@ -240,13 +242,14 @@ public:
 class TargetRef
 {
 public:
-    __int32                     rID;
+    __int32                    rID;
     std::vector<uint32_t>      positions;
 
     //constructer takes a ref id and a position for the first time
     TargetRef(__int32 ref, uint32_t pos)
     {
         rID = ref;
+        positions.reserve(10);
         positions.push_back(pos);
     }
 };
@@ -373,19 +376,18 @@ void Read::update(std::vector<uint32_t> const & taxaIDs,
 
 void Read::addTarget(int32_t rID, uint32_t binNo)
 {
-    size_t len = targets.size();
-    if (len == 0 )
+    if (targets.empty())
     {
         targets.push_back(TargetRef(rID, binNo));
         return;
     }
     else
     {
-        for (size_t i=0; i < len; ++i)
+        for (auto tar : targets)
         {
-            if((targets[i]).rID == rID)
+            if(tar.rID == rID)
             {
-                targets[i].positions.push_back(binNo);
+                tar.positions.push_back(binNo);
                 return;
             }
         }
@@ -581,9 +583,7 @@ std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfN
 std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfName, const std::string& rank)
 {
     std::string fName = getTSVFileName(oPrefix, inpfName);
-    std::string sfx = ".sp_reported";
-    if (rank != "species")
-        sfx = "_" + rank + "_reported";
+    std::string sfx = "_" + rank + "_reported";
     return fName.insert(fName.size()-4, sfx);
 }
 
@@ -651,7 +651,8 @@ inline float getCovDepth(Coverage c)
     
     //copy the coverage height.
     std::vector <float>  bHeights;
-    
+
+    bHeights.reserve(c.noOfBins);
     for (unsigned int i=0; i<c.noOfBins; ++i )
     {
         bHeights.push_back(float(c.binsHeight[i]));
@@ -682,6 +683,7 @@ float Slimm::covCutoff()
     if (_covCutoff == 0.0 && options.covCutOff < 1.0)
     {
         std::vector<float> covs = {};
+        covs.reserve(length(references));
         for (uint32_t i=0; i<length(references); ++i)
         {
             if (references[i].noOfUniqReads > 0)
@@ -698,6 +700,7 @@ float Slimm::uniqCovCutoff()
     if (_uniqCovCutoff == 0.0 && options.covCutOff < 1.0)
     {
         std::vector<float> covs = {};
+        covs.reserve(length(references));
         for (uint32_t i=0; i<length(references); ++i)
         {
             if (references[i].noOfUniqReads > 0)
@@ -720,6 +723,7 @@ __intSizeQCount Slimm::minReads()
     if (_minReads == -1)
     {
         std::vector<int> counts = {};
+        counts.reserve(length(references));
         for (uint32_t i=0; i<length(references); ++i)
         {
             if (references[i].noOfReads > 0)
@@ -738,6 +742,7 @@ __intSizeQCount Slimm::minUniqReads()
     if (_minUniqReads == -1)
     {
         std::vector<int> uniqCounts = {};
+        uniqCounts.reserve(length(references));
         for (uint32_t i=0; i<length(references); ++i)
         {
             if (references[i].noOfUniqReads > 0)
@@ -848,7 +853,9 @@ inline void analyzeAlignments(Slimm & slimm,
 
         uint32_t newQueryLen = length(record.seq);
         queryLen = (newQueryLen == 0) ? queryLen : newQueryLen;
-        uint32_t relativeBinNo = (record.beginPos + (queryLen/2))/slimm.options.binWidth;
+        uint32_t center_position =  std::min(record.beginPos + (queryLen/2),slimm.references[record.rID].length);
+        uint32_t relativeBinNo = center_position/slimm.options.binWidth;
+
         // maintain read properties under slimm.reads
         std::string readName = toCString(record.qName);
         if(hasFlagFirst(record))
@@ -891,15 +898,13 @@ inline void analyzeAlignments(Slimm & slimm,
                 for (size_t i=0; i < len; ++i)
                 {
 
-                    __int32 rID = (it->second.targets[i]).rID;
+                    __int32 rID = it->second.targets[i].rID;
                     it->second.sumRefLengths += slimm.references[rID].length;
 
                     // ***** all of the matches in multiple pos will be counted *****
-                    size_t pos_count = (it->second.targets[i]).positions.size();
-                    slimm.references[rID].noOfReads += pos_count;
-                    for (size_t j=0; j < pos_count; ++j)
+                    slimm.references[rID].noOfReads += (it->second.targets[i]).positions.size();
+                    for (auto binNo : (it->second.targets[i]).positions)
                     {
-                        uint32_t binNo = (it->second.targets[i]).positions[j];
                         ++slimm.references[rID].cov.binsHeight[binNo];
                     }
                 }
@@ -907,7 +912,6 @@ inline void analyzeAlignments(Slimm & slimm,
         }
         slimm.noOfMatched = slimm.reads.size();
 
-        std::vector<float> covValues;
         slimm.avgQLength = concatQLength/slimm.noOfMatched;
         float totalAb = 0.0;
         for (uint32_t i=0; i<length(slimm.references); ++i)
@@ -916,10 +920,6 @@ inline void analyzeAlignments(Slimm & slimm,
             {
                 ++slimm.noOfRefs;
                 slimm.matchedRefsLen += slimm.references[i].length;
-                if(slimm.references[i].covPercent() > 0.0)
-                    covValues.push_back(slimm.references[i].covPercent());
-                else
-                    continue;
                 slimm.references[i].relAbundance = float(slimm.references[i].noOfReads * 100)/slimm.hitCount;
                 totalAb += slimm.references[i].relAbundance/slimm.references[i].length;
             }
@@ -1151,35 +1151,29 @@ inline void getReadLCACount(Slimm & slimm,
     }
 }
 
+
 inline void writeAbundance(Slimm & slimm,
-                           TNodes & nodes, TIntStrMap const & taxaID2name,
-                           std::string const & filePath)
+                           TNodes & nodes,
+                           TIntStrMap const & taxaID2name,
+                           uint32_t const & noReadsAtRank,
+                           std::string const & currFile,
+                           std::string const & rank)
 {
+
+    std::string tsvFile = getTSVFileName(toCString(slimm.options.outputPrefix), currFile, rank);
     std::ofstream abundunceFile;
-    abundunceFile.open(filePath);
-        
-    // calculate the total number of reads matching uniquily at that species level.
-    uint32_t noReadsAtRank = 0;
-    for (auto tID : slimm.taxaID2ReadCount) {
-        if (slimm.options.rank == nodes[tID.first].second)
-        {
-            noReadsAtRank +=  tID.second ;
-        }
-    }
-    
-    
+    abundunceFile.open(tsvFile);
+
     uint32_t unknownReads = slimm.noOfMatched-noReadsAtRank;
-    
     uint32_t count = 0;
     uint32_t faild_count = 0;
     float faildAbundunce = 0.0;
     TIntFloatMap cladeCov;
     TIntFloatMap cladeAbundance;
-    std::vector<float> covValues;
     count = 1;
     abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tContributers\tCoverage\n";
     for (auto tID : slimm.taxaID2ReadCount) {
-        if (slimm.options.rank == nodes[tID.first].second)
+        if (rank == nodes[tID.first].second)
         {
             uint32_t cLength = 0;
             uint32_t noOfContribs = 0;
@@ -1217,15 +1211,40 @@ inline void writeAbundance(Slimm & slimm,
 
     }
     float unknownAbundance = float(unknownReads)/ slimm.noOfMatched * 100 + faildAbundunce;
-    
-    abundunceFile   << count << "\tunknown_"<<slimm.options.rank<< "(multiple)" << "\t0\t"
+
+    abundunceFile   << count << "\tunknown_"<< rank<< "(multiple)" << "\t0\t"
     << unknownReads << "\t" << unknownAbundance << "\t0\t0.0\n";
     abundunceFile.close();
-    std::cout<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...";
-    
+    std::cout<< std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<") ...\n";
 }
 
-void getFilesInDirectory(StringList &inputPaths, std::string directory)
+
+inline void writeAbundance(Slimm & slimm, TNodes & nodes, TIntStrMap const & taxaID2name, std::string const & currFile)
+{
+    std::vector<std::string> const allRanks= {"species", "genus", "family", "order", "class", "phylum", "superkingdom"};
+    std::vector<std::string> consideredRanks = {slimm.options.rank};
+    if(slimm.options.rank == "all")
+    {
+        consideredRanks.resize(7);
+        consideredRanks = allRanks;
+    }
+
+    // calculate the total number of reads matching uniquily at that species level.
+    std::map<std::string, uint32_t>  noReadsAtRank = {{"all", 0}, {"species", 0}, {"genus", 0}, {"family", 0}, {"order", 0}, {"class", 0}, {"phylum", 0}, {"superkingdom", 0}};
+    for (auto tID : slimm.taxaID2ReadCount)
+    {
+        if (noReadsAtRank.find(nodes[tID.first].second) != noReadsAtRank.end() )
+        {
+            noReadsAtRank[nodes[tID.first].second] +=  tID.second ;     // found
+        }
+    }
+
+    for (std::string rank : consideredRanks)
+    {
+        writeAbundance(slimm, nodes, taxaID2name, noReadsAtRank[rank], currFile, rank);
+    }
+}
+void getFilesInDirectory(std::vector<std::string> & inputPaths, std::string directory)
 {
 #ifdef WINDOWS
     HANDLE dir;
@@ -1250,8 +1269,7 @@ void getFilesInDirectory(StringList &inputPaths, std::string directory)
 
         if((full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
         full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
-            appendValue(inputPaths, full_file_name);
-        // out.push_back(full_file_name);
+           inputPaths.push_back(full_file_name);
     } while (FindNextFile(dir, &file_data));
 
     FindClose(dir);
@@ -1280,8 +1298,8 @@ void getFilesInDirectory(StringList &inputPaths, std::string directory)
 
         if(full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
         full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
-            appendValue(inputPaths, full_file_name);
-        // out.push_back(full_file_name);
+            inputPaths.push_back(full_file_name);
+        //appendValue(inputPaths, full_file_name);
     }
     closedir(dir);
 #endif

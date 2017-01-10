@@ -12,7 +12,7 @@
 
 # change this after every release
 set (SEQAN_APP_VERSION_MAJOR "0")
-set (SEQAN_APP_VERSION_MINOR "2")
+set (SEQAN_APP_VERSION_MINOR "3")
 set (SEQAN_APP_VERSION_PATCH "0")
 
 # don't change the following
@@ -26,8 +26,7 @@ set (SEQAN_APP_VERSION "${SEQAN_APP_VERSION_MAJOR}.${SEQAN_APP_VERSION_MINOR}.${
 find_package(OpenMP QUIET)
 find_package(ZLIB   QUIET)
 find_package(BZip2  QUIET)
-find_package(SeqAn  QUIET REQUIRED)
-set (SEQAN_FIND_DEPENDENCIES ZLIB BZip2)
+find_package(SeqAn  QUIET REQUIRED CONFIG)
 
 message(STATUS "These dependencies where found:")
 message(   "     OPENMP     ${OPENMP_FOUND}      ${OpenMP_CXX_FLAGS}")
@@ -42,7 +41,7 @@ endif (NOT ZLIB_FOUND)
 
 # Warn if BZip2 was not found.
 if (NOT BZIP2_FOUND)
-  message (WARNING "WARNING: BZip2 not found. Building SLIMM without support for bzipped input and output.")
+  message (WARNING "WARNING: BZip2 not found. Building SLIMM without support for bzipped input and output such as BAM files.")
 endif (NOT BZIP2_FOUND)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
@@ -63,12 +62,12 @@ elseif (COMPILER_IS_INTEL)
     endif ()
 endif ()
 
-if (SEQAN_VERSION_STRING VERSION_LESS "2.2.0")
-    message (FATAL_ERROR "The minimum SeqAn verison required is 2.2.0!")
+if (SEQAN_VERSION_STRING VERSION_LESS "2.3.1")
+    message (FATAL_ERROR "The minimum SeqAn verison required is 2.3.1!")
     return ()
 endif ()
 
-message(STATUS "The requirements where met.")
+message(STATUS "The requirements were met.")
 
 # ----------------------------------------------------------------------------
 # App-Level Configuration
@@ -95,11 +94,9 @@ if (SLIMM_STATIC_BUILD)
     # apple does not support fully static builds, but at least libgcc and libstdc++
     if (APPLE)
         message (WARNING "WARNING: Builds on Mac are never fully static.")
-        if (COMPILER_GCC)
-            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-        endif (COMPILER_GCC)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
     else (APPLE)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
     endif (APPLE)
     # on linux cmake adds -rdynamic automatically which clang can't handle in static builds
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -164,7 +161,9 @@ add_definitions (-DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 # Set the right output directory
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
-# Update the list of file names below if you add source files to your application.
+# Add CXX flags found by find_package (SeqAn).
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
                         slimm.h
@@ -175,8 +174,6 @@ add_executable(slimm    slimm.cpp
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (slimm ${SEQAN_LIBRARIES})
 
-# Add CXX flags found by find_package (SeqAn).
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 set(BUILD_SHARED_LIBS OFF)
 
