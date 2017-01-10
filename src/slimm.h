@@ -177,7 +177,7 @@ public:
     {
         binWidth = width;
         noOfBins = totalLen/width + 1;
-        binsHeight.resize(noOfBins);
+        binsHeight.resize(noOfBins, 0);
     }
     uint32_t noOfNonZeroBins()
     {
@@ -853,11 +853,7 @@ inline void analyzeAlignments(Slimm & slimm,
 
         uint32_t newQueryLen = length(record.seq);
         queryLen = (newQueryLen == 0) ? queryLen : newQueryLen;
-        uint32_t center_position = record.beginPos + (queryLen/2);
-        if (center_position > slimm.references[record.rID].length)
-        {
-            center_position = slimm.references[record.rID].length;
-        }
+        uint32_t center_position =  std::min(record.beginPos + (queryLen/2),slimm.references[record.rID].length);
         uint32_t relativeBinNo = center_position/slimm.options.binWidth;
 
         // maintain read properties under slimm.reads
