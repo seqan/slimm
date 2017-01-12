@@ -96,6 +96,7 @@ if (SLIMM_STATIC_BUILD)
         message (WARNING "WARNING: Builds on Mac are never fully static.")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
     else (APPLE)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
     endif (APPLE)
     # on linux cmake adds -rdynamic automatically which clang can't handle in static builds
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
