@@ -5,8 +5,6 @@
 //  Created by Temesgen H. Dadi on 04/09/15.
 //
 //
-
-
 #ifndef APP_SLIMM_LOAD_MAPPING_FILES_H_
 #define APP_SLIMM_LOAD_MAPPING_FILES_H_
 
