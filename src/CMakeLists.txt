@@ -26,13 +26,40 @@ set (SEQAN_APP_VERSION "${SEQAN_APP_VERSION_MAJOR}.${SEQAN_APP_VERSION_MINOR}.${
 find_package(OpenMP QUIET)
 find_package(ZLIB   QUIET)
 find_package(BZip2  QUIET)
-find_package(SeqAn  QUIET REQUIRED CONFIG)
 
-message(STATUS "These dependencies where found:")
-message(   "     OPENMP     ${OPENMP_FOUND}      ${OpenMP_CXX_FLAGS}")
-message(   "     ZLIB       ${ZLIB_FOUND}      ${ZLIB_VERSION_STRING}")
-message(   "     BZIP2      ${BZIP2_FOUND}      ${BZIP2_VERSION_STRING}")
-message(   "     SEQAN      ${SEQAN_FOUND}      ${SEQAN_VERSION_STRING}")
+# ----------------------------------------------------------------------------
+# App-Level Configuration
+# ----------------------------------------------------------------------------
+option (SLIMM_NATIVE_BUILD "Architecture-specific optimizations, i.e. g++ -march=native."                      ON)
+option (SLIMM_STATIC_BUILD "Include all libraries in the binaries."                                            OFF)
+
+if (SLIMM_NATIVE_BUILD)
+    add_definitions (-DSLIMM_NATIVE_BUILD=1)
+    set (SEQAN_CXX_FLAGS "${SEQAN_CXX_FLAGS} -march=native")
+    if (COMPILER_IS_INTEL)
+        set (SEQAN_CXX_FLAGS "${SEQAN_CXX_FLAGS} -xHOST -ipo -no-prec-div -fp-model fast=2")
+    endif (COMPILER_IS_INTEL)
+endif (SLIMM_NATIVE_BUILD)
+
+if (SLIMM_STATIC_BUILD)
+    add_definitions (-DSLIMM_STATIC_BUILD=1)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    # apple does not support fully static builds, but at least libgcc and libstdc++
+    if (APPLE)
+        message (WARNING "WARNING: Builds on Mac are never fully static.")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+    else (APPLE)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    endif (APPLE)
+    # on linux cmake adds -rdynamic automatically which clang can't handle in static builds
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+        SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+    endif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+endif (SLIMM_STATIC_BUILD)
+
+# ----------------------------------------------------------------------------
+# Dependencies (continued)
+# ----------------------------------------------------------------------------
 
 # Warn if Zlib was not found.
 if (NOT ZLIB_FOUND)
@@ -62,47 +89,24 @@ elseif (COMPILER_IS_INTEL)
     endif ()
 endif ()
 
+find_package(SeqAn  QUIET REQUIRED CONFIG)
+
 if (SEQAN_VERSION_STRING VERSION_LESS "2.3.1")
     message (FATAL_ERROR "The minimum SeqAn verison required is 2.3.1!")
     return ()
 endif ()
 
+message(STATUS "These dependencies where found:")
+message(   "     OPENMP     ${OPENMP_FOUND}      ${OpenMP_CXX_FLAGS}")
+message(   "     ZLIB       ${ZLIB_FOUND}      ${ZLIB_VERSION_STRING}")
+message(   "     BZIP2      ${BZIP2_FOUND}      ${BZIP2_VERSION_STRING}")
+message(   "     SEQAN      ${SEQAN_FOUND}      ${SEQAN_VERSION_STRING}")
 message(STATUS "The requirements were met.")
 
-# ----------------------------------------------------------------------------
-# App-Level Configuration
-# ----------------------------------------------------------------------------
 
 message ("\n${ColourBold}Build configuration${ColourReset}")
 
 message (STATUS "SLIMM version is: ${SEQAN_APP_VERSION}")
-
-option (SLIMM_NATIVE_BUILD "Architecture-specific optimizations, i.e. g++ -march=native."                      ON)
-option (SLIMM_STATIC_BUILD "Include all libraries in the binaries."                                            OFF)
-
-if (SLIMM_NATIVE_BUILD)
-    add_definitions (-DSLIMM_NATIVE_BUILD=1)
-    set (SEQAN_CXX_FLAGS "${SEQAN_CXX_FLAGS} -march=native")
-    if (COMPILER_IS_INTEL)
-        set (SEQAN_CXX_FLAGS "${SEQAN_CXX_FLAGS} -xHOST -ipo -no-prec-div -fp-model fast=2")
-    endif (COMPILER_IS_INTEL)
-endif (SLIMM_NATIVE_BUILD)
-
-if (SLIMM_STATIC_BUILD)
-    add_definitions (-DSLIMM_STATIC_BUILD=1)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    # apple does not support fully static builds, but at least libgcc and libstdc++
-    if (APPLE)
-        message (WARNING "WARNING: Builds on Mac are never fully static.")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-    else (APPLE)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
-    endif (APPLE)
-    # on linux cmake adds -rdynamic automatically which clang can't handle in static builds
-    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-        SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-    endif (CMAKE_SYSTEM_NAME MATCHES "Linux")
-endif (SLIMM_STATIC_BUILD)
 
 message(STATUS "The following options are selected for the build:")
 message(   "     SLIMM_NATIVE_BUILD      ${SLIMM_NATIVE_BUILD}")
