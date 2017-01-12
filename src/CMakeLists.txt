@@ -12,7 +12,7 @@
 
 # change this after every release
 set (SEQAN_APP_VERSION_MAJOR "0")
-set (SEQAN_APP_VERSION_MINOR "3")
+set (SEQAN_APP_VERSION_MINOR "2")
 set (SEQAN_APP_VERSION_PATCH "0")
 
 # don't change the following
