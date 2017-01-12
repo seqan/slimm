@@ -32,12 +32,8 @@
 // Author: Temesgen H. Dadi <temesgen.dadi@fu-berlin.de>
 // ==========================================================================
 
-#ifndef slimm_h
-#define slimm_h
-
-
-#include "timer.h"
-#include "load_mapping_files.h"
+#ifndef SLIMM_H
+#define SLIMM_H
 
 
 #include <seqan/basic.h>
@@ -46,17 +42,13 @@
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 
-#include <sys/stat.h>
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <map>
-#include <stdio.h>
-#include <stdlib.h>
-#include <numeric>
 #include <unordered_map>
 
-
+#include "timer.h"
+#include "load_mapping_files.h"
 
 
 using namespace seqan;
@@ -596,8 +588,8 @@ void setDateAndVersion(ArgumentParser & parser)
     setDate(parser, __DATE__);
     setShortDescription(parser, "Species Level Identification of Microbes from Metagenomes");
     setCategory(parser, "Metagenomics");
-#if defined(SEQAN_APP_VERSION) && defined(SEQAN_REVISION)
-    setVersion(parser, SEQAN_APP_VERSION " [" SEQAN_REVISION "]");
+#if defined(SEQAN_APP_VERSION)
+    setVersion(parser, SEQAN_APP_VERSION);
 #endif
 }
 
@@ -1305,4 +1297,4 @@ void getFilesInDirectory(std::vector<std::string> & inputPaths, std::string dire
 #endif
 } // getFilesInDirectory
 
-#endif /* slimm_h */
+#endif /* SLIMM_H */

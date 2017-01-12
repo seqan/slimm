@@ -96,7 +96,6 @@ if (SLIMM_STATIC_BUILD)
         message (WARNING "WARNING: Builds on Mac are never fully static.")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
     else (APPLE)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
     endif (APPLE)
     # on linux cmake adds -rdynamic automatically which clang can't handle in static builds
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -143,7 +142,7 @@ endif ()
 # ----------------------------------------------------------------------------
 
 # Enable global exception handler for all seqan apps.
-set (SEQAN_DEFINITIONS "${SEQAN_DEFINITIONS} -DSEQAN_GLOBAL_EXCEPTION_HANDLER")
+set (SEQAN_DEFINITIONS ${SEQAN_DEFINITIONS} -DSEQAN_GLOBAL_EXCEPTION_HANDLER=1)
 
 # Add include directories.
 include_directories (${SEQAN_INCLUDE_DIRS})
@@ -152,11 +151,11 @@ include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
 
 # Add definitions set by the build system.
-add_definitions (-DSEQAN_VERSION_STRING="${SEQAN_VERSION_STRING}")
-add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
-add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 add_definitions (-DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+
+# deactivate the version check until all issues are resolved
+add_definitions (-DSEQAN_DISABLE_VERSION_CHECK="YES")
 
 # Set the right output directory
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)

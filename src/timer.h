@@ -1,6 +1,5 @@
 //
 //  timer.h
-//  seqan
 //
 //  Created by Temesgen H. Dadi on 31/08/15.
 //
@@ -8,8 +7,8 @@
 #include <chrono>
 #include <ctime>
 
-#ifndef seqan_timer_h
-#define seqan_timer_h
+#ifndef SEQAN_TIMER_H
+#define SEQAN_TIMER_H
 
 template<typename TimeT = std::chrono::seconds,
 typename ClockT=std::chrono::high_resolution_clock,
@@ -46,4 +45,4 @@ DurationT Timer<TimeT, ClockT, DurationT>::elapsed()
     return delta.count();
 }
 
-#endif
+#endif //SEQAN_TIMER_H

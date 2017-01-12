@@ -32,11 +32,11 @@
 // Author: Temesgen H. Dadi <temesgen.dadi@fu-berlin.de>
 // ==========================================================================
 #include "slimm.h"
+
 using namespace seqan;
 // --------------------------------------------------------------------------
 // Function parseCommandLine()
 // --------------------------------------------------------------------------
-
 ArgumentParser::ParseResult
 parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char const ** argv)
 {
