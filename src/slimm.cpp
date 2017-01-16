@@ -58,8 +58,7 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
               ArgParseOption("m",
                              "mapping-files",
                              "directory containing various mapping files "
-                             "(gi2taxaID.map nodes_reduced.map "
-                             "names_reduced.map taxaIDFeatures.map).",
+                             "(names.dmp and nodes.dmp).",
                              ArgParseOption::STRING));
     
     addOption(parser,
@@ -255,10 +254,7 @@ int main(int argc, char const ** argv)
         std::cout<<"computing features of each reference genome ... " << std::endl;
         
         // Determine taxa id position
-        uint32_t tIdPos = 0;
-        TIntIntMap gi2taxaID;
-        bool giOnly = false;
-        
+        uint32_t tIdPos = 0;         
         if (!getTaxaId(tIdPos, refNames[0], "ti"))
         {
             if (!getTaxaId(tIdPos, refNames[0], "kraken:taxid"))
@@ -303,7 +299,7 @@ int main(int argc, char const ** argv)
             current_ref.uniqCov2 = cov;
             StringList chunks;
             strSplit(chunks, refNames[i], EqualsChar<'|'>());
-            current_ref.taxaID = giOnly?gi2taxaID[atoi(toCString(chunks[tIdPos]))]:atoi(toCString(chunks[tIdPos]));
+            current_ref.taxaID = atoi(toCString(chunks[tIdPos]));
             
             slimm.matchedTaxa.push_back(current_ref.taxaID);
             slimm.references[i] = current_ref;
