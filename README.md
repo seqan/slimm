@@ -3,7 +3,7 @@ SLIMM - Species Level Identification of Microbes from Metagenomes -
 
 a taxonomic profiling tool that investigates which microorganisms are present in a sequenced sample. SLIMM requires a BAM/SAM alignment file as an input. One can use a read mapper of choice to map raw reads obtained from a sequencing machine to obtain the BAM/SAM file required as input for SLIMM. 
 
-    slimm [OPTIONS] "IN" "OUT"
+    slimm [OPTIONS] -m $SLIMM_DB_PATH $SAM_FILE_PATH
     Try 'slimm --help' for more information.
 
 VERSION
