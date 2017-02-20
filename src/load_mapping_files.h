@@ -37,7 +37,7 @@ TTarget loadMappingInt2String(TString const & filePath)
     std::ifstream nameMap(filePath);
     uint32_t key;
     std::string value,  line;
-    
+
     while(std::getline(nameMap, line))
     {
         std::stringstream   linestream(line);
@@ -56,7 +56,7 @@ void loadNodes(TTarget & target, TString const & filePath)
 {
     std::ifstream nodeMap(filePath);
     std::string   line;
-    
+
     while(std::getline(nodeMap, line))
     {
         std::stringstream   linestream(line);
@@ -65,10 +65,10 @@ void loadNodes(TTarget & target, TString const & filePath)
         TValue2 value2;
         linestream >> key >> value1;
         std::getline(linestream, value2, '\t');
-        std::getline(linestream, value2, '\t');        
+        std::getline(linestream, value2, '\t');
         target[key]=std::pair<TValue1, TValue2> (value1, value2);
     }
-    
+
     nodeMap.close();
 }
 #endif //APP_SLIMM_LOAD_MAPPING_FILES_H_
