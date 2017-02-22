@@ -91,7 +91,7 @@ inline uint32_t findLCATaxaID(std::set<uint32_t> const & taxaIDs,
 struct AppOptions
 {
     typedef std::vector<std::string>            TList;
-    
+
     TList               rankList        = {
         "all",
         "species",
@@ -113,7 +113,7 @@ struct AppOptions
     std::string         inputPath;
     std::string         outputPrefix;
     std::string         mappingDir;
-    
+
     AppOptions() :
     covCutOff(0.99),
     binWidth(0),
@@ -159,12 +159,12 @@ public:
     uint32_t                    binWidth;
     uint32_t                    noOfBins;
     std::vector <uint32_t>      binsHeight;
-    
+
     Coverage():
     binWidth(0),
     noOfBins(0)
     {}
-    
+
     Coverage(uint32_t totalLen, uint32_t width)
     {
         binWidth = width;
@@ -204,7 +204,7 @@ public:
     float               relAbundance;
     float               relAbundanceUniq;
     float               relAbundanceUniq2;
-    
+
     ReferenceContig():
     refName(""),
     isValid(false),
@@ -253,18 +253,18 @@ public:
     std::vector<TargetRef>          targets;
     uint32_t                        sumRefLengths = 0;
     uint32_t                        len = 0;
-    
+
     //checks if all the match points are in the same sequence
     bool isUniq();
-    
-    
+
+
     //checks if all the match points are in the same taxaID
     bool isUniq(std::vector<uint32_t> const & taxaIDs);
-    
+
     void update(std::vector<uint32_t> const & taxaIDs,
                 std::set<uint32_t> const & valtaxaIDs,
                 std::vector<ReferenceContig> const & references );
-    
+
     void addTarget(int32_t rID, uint32_t binNo);
 
 };
@@ -295,9 +295,9 @@ public:
     __intSizeQCount                 noOfMatched = 0;
     __intSizeQCount                 noOfUniqlyMatched = 0;
     __intSizeQCount                 noOfUniqlyMatched2 = 0;
-    
+
     AppOptions                      options;
-    
+
     TIntIntMap                      taxaID2ReadCount;
     TIntFloatMap                    taxaID2Abundance;
     TIntSetMap                      taxaID2Children;
@@ -307,7 +307,7 @@ public:
     float                           uniqCovCutoff();
     __intSizeQCount                 minReads();
     __intSizeQCount                 minUniqReads();
-    
+
 };
 
 //checks if all the match points are in the same sequence
@@ -399,7 +399,7 @@ Type getCutoffByQuantile (std::vector<Type> v,float q)
     Type cutoff = (Type)0, subTotal = (Type)0;
     std::vector<Type> vals = v;
     std::sort (vals.begin(), vals.end());
-    
+
     uint32_t i= vals.size() - 1;
     while((float(subTotal)/total) < q && i > (Type)0)
     {
@@ -407,7 +407,7 @@ Type getCutoffByQuantile (std::vector<Type> v,float q)
         --i;
     }
     cutoff = vals[i];
-    
+
     return cutoff;
 }
 
@@ -535,13 +535,13 @@ float calculateAlignmentScore(String<CigarElement<> > cigar,
     float score = 0.0;
     score += editDistance;
     typedef Iterator<String<CigarElement<> > >::Type TCigarIterator;
-    
+
     for (TCigarIterator it = begin(cigar) ; it != end(cigar); goNext(it))
     {
         if (value(it).operation == 'D' || value(it).operation == 'I')
             score += float(value(it).count);
     }
-    
+
     return score/readLen;
 }
 
@@ -638,9 +638,9 @@ inline float getCovDepth(Coverage c)
 {
     if(c.noOfNonZeroBins() == 0)
         return 0.0;
-    
+
     std::vector <uint32_t>::iterator it;
-    
+
     //copy the coverage height.
     std::vector <float>  bHeights;
 
@@ -859,7 +859,7 @@ inline void analyzeAlignments(Slimm & slimm,
         slimm.reads[readName].len = queryLen;
         ++slimm.hitCount;
     }
-    
+
     if (slimm.hitCount != 0)
     {
         __intSizeGLength concatQLength = 0;
@@ -927,7 +927,7 @@ inline void analyzeAlignments(Slimm & slimm,
                 slimm.references[i].relAbundance = (slimm.references[i].relAbundance * 100) / (totalAb*slimm.references[i].length);
             }
         }
-        
+
         totalAb = 0.0;
         for (uint32_t i=0; i<length(slimm.references); ++i)
         {
@@ -946,7 +946,7 @@ inline void analyzeAlignments(Slimm & slimm,
             if (slimm.references[i].noOfUniqReads > 0)
             {
                 slimm.references[i].relAbundanceUniq = (slimm.references[i].relAbundanceUniq * 100) / (totalAb*slimm.references[i].length);
-            }            
+            }
         }
     }
 }
@@ -956,7 +956,7 @@ inline void filterAlignments(Slimm & slimm)
     uint32_t noOfRefs = length(slimm.references);
     for (uint32_t i=0; i<noOfRefs; ++i)
     {
-        
+
         if (slimm.references[i].noOfReads == 0)
             continue;
         if (
@@ -982,7 +982,7 @@ inline void filterAlignments(Slimm & slimm)
         }
 
     }
-    
+
     for (auto it= slimm.reads.begin(); it != slimm.reads.end(); ++it)
     {
         it->second.update(slimm.matchedTaxa, slimm.validRefTaxonIDs, slimm.references);
@@ -1004,7 +1004,7 @@ inline void writeToFile(std::string & filePath,
 {
     std::ofstream features_file;
     features_file.open(filePath);
-    
+
     features_file <<    "No.\t"
     "CandidateName\t"
     "Taxid\t"
@@ -1015,23 +1015,23 @@ inline void writeToFile(std::string & filePath,
     "GenomeLength\t"
     "NoOfUniqueReads\t"
     "NoOfUniqueReads2\t"
-    
+
     "NoOfBins\t"
     "noOfNonZeroBins\t"
     "noOfNonZeroBinsUniq\t"
     "noOfNonZeroBinsUniq2\t"
-    
-    
+
+
     "CoverageDepth\t"
-    
+
     "UniqCoverageDepth\t"
     "UniqCoverageDepth2\t"
-    
+
     "MappingError\t"
     "CoveragePercentage\t"
     "UniqueCoveragePercentage\t"
     "UniqueCoveragePercentage2\n";
-    
+
     uint32_t current = 0;
     uint32_t noOfRefs = length(refList);
     for (uint32_t i=0; i < noOfRefs; ++i)
@@ -1042,7 +1042,7 @@ inline void writeToFile(std::string & filePath,
         TIntStrMap::const_iterator it = taxaID2name.find(current_ref.taxaID);
         if (it != taxaID2name.end())
             candidateName = (taxaID2name.at(current_ref.taxaID));
-        
+
         features_file   << current << "\t"
         << candidateName << "\t"
         << current_ref.taxaID << "\t"
@@ -1053,18 +1053,18 @@ inline void writeToFile(std::string & filePath,
         << current_ref.length << "\t"
         << current_ref.noOfUniqReads << "\t"
         << current_ref.noOfUniqReads2 << "\t"
-        
+
         << current_ref.cov.noOfBins << "\t"
         << current_ref.cov.noOfNonZeroBins() << "\t"
         << current_ref.uniqCov.noOfNonZeroBins() << "\t"
         << current_ref.uniqCov2.noOfNonZeroBins() << "\t"
-        
-        
+
+
         << current_ref.covDepth() << "\t"
-        
+
         << current_ref.uniqCovDepth() << "\t"
         << current_ref.uniqCovDepth2() << "\t"
-        
+
         << "NA"<< "\t"
         << current_ref.covPercent() << "\t"
         << current_ref.uniqCovPercent() << "\t"
@@ -1120,8 +1120,8 @@ inline void getReadLCACount(Slimm & slimm,
             slimm.taxaID2Children[currentTaxaID].insert(refIDs.begin(), refIDs.end());
         }
     }
-    
-    
+
+
     for (uint32_t i=0; i<length(slimm.references); ++i)
     {
 

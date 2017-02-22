@@ -8,7 +8,7 @@ a taxonomic profiling tool that investigates which microorganisms are present in
 
 VERSION
 
-    * SLIMM version: 0.2
+    * SLIMM version: 0.2.1
     * Last update: January 2017
     
 
