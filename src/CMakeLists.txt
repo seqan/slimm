@@ -13,7 +13,7 @@
 # change this after every release
 set (SEQAN_APP_VERSION_MAJOR "0")
 set (SEQAN_APP_VERSION_MINOR "2")
-set (SEQAN_APP_VERSION_PATCH "0")
+set (SEQAN_APP_VERSION_PATCH "1")
 
 # don't change the following
 set (SEQAN_APP_VERSION "${SEQAN_APP_VERSION_MAJOR}.${SEQAN_APP_VERSION_MINOR}.${SEQAN_APP_VERSION_PATCH}")
@@ -191,7 +191,7 @@ install (TARGETS slimm
 
 # Install non-binary files for the package to "." for app builds and
 # ${PREFIX}/share/doc/slimm for SeqAn release builds.
-install (FILES LICENSE README
+install (FILES ../LICENSE ../README.md
          DESTINATION "share/doc/slimm")
 
 # ----------------------------------------------------------------------------
@@ -200,6 +200,8 @@ install (FILES LICENSE README
 
 set (CPACK_PACKAGE_NAME "slimm")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "SLIMM -- Species Level Identification of Microbes from Metagenomes")
+set (CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../README.md")
+set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
 set (CPACK_PACKAGE_VENDOR "Temesgen H. Dadi <temesgen.dadi@fu-berlin.de>")
 set (CPACK_PACKAGE_CONTACT "${CPACK_PACKAGE_VENDOR}")
 set (CPACK_PACKAGE_VERSION_MAJOR "${SEQAN_APP_VERSION_MAJOR}")
@@ -221,5 +223,24 @@ endif ()
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(CPACK_GENERATOR "${CPACK_GENERATOR};DEB;RPM")
 endif ()
+
+# Package architecture
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
+    set(CMAKE_SYSTEM_PROCESSOR "x86_64")
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+endif ()
+if (CMAKE_CXX_FLAGS MATCHES "avx2")
+    set (CMAKE_SYSTEM_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}_avx2")
+elseif (CMAKE_CXX_FLAGS MATCHES "sse4")
+    set (CMAKE_SYSTEM_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}_sse4")
+endif()
+
+# Include architecture in package name
+if (NOT DEFINED CPACK_SYSTEM_NAME)
+  set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+endif (NOT DEFINED CPACK_SYSTEM_NAME)
+
+#replace Darwin with Mac
+string(REPLACE "Darwin" "Mac" CPACK_SYSTEM_NAME ${CPACK_SYSTEM_NAME})
 
 include (CPack)
