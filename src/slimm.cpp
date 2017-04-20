@@ -103,17 +103,19 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
     // Add Examples Section.
     addTextSection(parser, "Examples");
 
-    addListItem(parser,
-                "\\fBslimm\\fP \\fB-v\\fP \\fIexample.bam\\fP "
-                "-o \\fIfeatures.tsv\\fP",
-                "get the microbes present in \"example.bam\" alignment "
-                "file and write the result to \"features.tsv\".");
 
-    addListItem(parser, "\\fBslimm\\fP \\fB-d\\fP \\fIexample-dir\\fP "
-                "-o \\fI~/results/\\fP",
-                "get the microbes present in the SAM/BAM files located "
-                "under \"example-dir\" and write the result to \""
-                "in results folder under the home directory\".");
+    addListItem(parser,
+                "\\fBslimm\\fP \\fB-m\\fP \\fIslimmDB-5K\\fP \\fB-o\\fP "
+                "\\fIslimm_reports/\\fP \\fIexample.bam\\fP",
+                "get taxonomic profile from \"\\fIexample.bam\\fP\" "
+                "and write it to a tsv file under \"\\fIslimm_reports/\\fP\" directory.");
+
+    addListItem(parser,
+                "\\fBslimm\\fP \\fB-d -m\\fP \\fIslimmDB-5K\\fP \\fB-o\\fP "
+                "\\fIslimm_reports/\\fP \\fIexample-dir/\\fP",
+                "get taxonomic profiles from individual SAM/BAM files "
+                "located under \"\\fIexample-dir/\\fP\" and write them to tsv files "
+                "under \"\\fIslimm_reports/\\fP\" directory with their corsponding file names.");
 
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
 
