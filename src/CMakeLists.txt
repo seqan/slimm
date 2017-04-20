@@ -159,9 +159,6 @@ add_definitions (${SEQAN_DEFINITIONS})
 add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 add_definitions (-DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
-# deactivate the version check until all issues are resolved
-add_definitions (-DSEQAN_DISABLE_VERSION_CHECK="YES")
-
 # Set the right output directory
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
