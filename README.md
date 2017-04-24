@@ -19,3 +19,9 @@ Pre-built executables for Linux and Mac are made available at the [releases page
 
 #### Source code
 You can build SLIMM from its source. Instruction on how to build from source can be found at the [slimm wiki] (https://github.com/seqan/slimm/wiki) 
+
+#### Cite us
+
+If you use SLIMM in your work-flows, don't forget to cite us.
+
+Dadi TH, Renard BY, Wieler LH, Semmler T, Reinert K. (2017) SLIMM: species level identification of microorganisms from metagenomes. PeerJ 5:e3138 https://doi.org/10.7717/peerj.3138
