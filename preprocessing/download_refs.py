@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 from helper_methods import *
 
-parser = argparse.ArgumentParser(description = 
-''' Download reference genomes of microorganisms  
+parser = argparse.ArgumentParser(description =
+''' Download reference genomes of microorganisms
 ''', formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument('-wd', '--workdir', type=str, 
+parser.add_argument('-wd', '--workdir', type=str,
                     help = 'The path of working directory where (intermidiate) results will be saved')
-parser.add_argument('-g', '--groups',  type=str, default = "AB", 
-                    help = '''Which group of microbes to consider any combination of the letters [A], [B] and [V] 
+parser.add_argument('-g', '--groups',  type=str, default = "AB",
+                    help = '''Which group of microbes to consider any combination of the letters [A], [B] and [V]
                     where B =  Bacteria, A = Archaea and V = Viruses and Viroids (default: AB)''')
 parser.add_argument('-s', '--sp', dest='species_lv', action='store_true',
                     help = 'download one reference per species.')
-parser.add_argument('-t', '--threads',  type=int, choices=xrange(1, 11), default = 4, 
+parser.add_argument('-t', '--threads',  type=int, choices=xrange(1, 11), default = 4,
                     help = 'number of threads for downloading in parallel in the range 1..10 (default: 4)')
-parser.add_argument('-d', '--database', type=str, choices = ['refseq', 'genbank'], default = 'refseq', 
+parser.add_argument('-d', '--database', type=str, choices = ['refseq', 'genbank'], default = 'refseq',
                     help = 'From which database references should be downloaded  (default: refseq)')
 parser.add_argument('-ts', '--testing',  dest='testing', action='store_true',
                     help = 'This is a test run work with only few downloads.')
@@ -44,8 +44,8 @@ testing = args.testing
 if not os.path.isdir(working_dir):
     os.makedirs(working_dir)
 else:
-    empty = os.listdir(working_dir) == []; 
-    if not empty: 
+    empty = os.listdir(working_dir) == [];
+    if not empty:
         print ("[ERROR!] Working directory [" + working_dir + "] should be empty!")
         sys.exit(0)
 
@@ -66,10 +66,10 @@ taxdmp_extract_dir = taxonomy_download("taxdump", working_dir, today_string)
 taxcat_extract_dir = taxonomy_download("taxcat", working_dir, today_string)
 
 
-names_path = taxdmp_extract_dir + "/names.dmp" 
+names_path = taxdmp_extract_dir + "/names.dmp"
 nodes_path = taxdmp_extract_dir + "/nodes.dmp"
-catagories_path = taxcat_extract_dir + "/categories.dmp" 
-reduced_names_path = slimmDB_dir + "/names.dmp" 
+catagories_path = taxcat_extract_dir + "/categories.dmp"
+reduced_names_path = slimmDB_dir + "/names.dmp"
 reduced_nodes_path = slimmDB_dir + "/nodes.dmp"
 taxaid2sp_path=nodes_path.replace("nodes.dmp", "taxaid2sp_" + groups + ".dmp")
 
@@ -88,7 +88,7 @@ urllib.urlretrieve(assembly_summary_url, assembly_summary_file)
 
 
 ################################################################################################
-# From the assembly summary file, identify, download and anotate the genomes to download. 
+# From the assembly summary file, identify, download and anotate the genomes to download.
 # Unique genomes per taxon will be downloaded. Genomes are selected in the folowing order:
 # 1. Complete genomes (longest first)
 # 2. Chromosomes (longest first)
@@ -118,7 +118,7 @@ for line in inpf:
         path = l[19].replace("\n", "")
         if (taxid in intial_taxids and (path != 'na') and l[10] == "latest") :
             complete_path = path + path[path.rfind('/'):] + "_genomic.fna.gz"
-            # fname = path.replace("ftp://ftp.ncbi.nlm.nih.gov/genomes/all/", "")           
+            # fname = path.replace("ftp://ftp.ncbi.nlm.nih.gov/genomes/all/", "")
             # complete_path = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/" + fname + "/" + fname + "_genomic.fna.gz"
             if taxid in taxid_genomes :
                 taxid_genomes[taxid].append([l[11], l[13], complete_path, l[6], l[4]])
@@ -158,7 +158,7 @@ for taxid in taxid_genomes:
             if (options[0] == "Chromosome") :
                 selected_op = options
                 found = True
-                break;          
+                break;
     if not found and (str(taxid) == options[3] or len(taxid_genomes[taxid]) == 1):
         for options in taxid_genomes[taxid] :
             if (options[0] == "Scaffold") :
@@ -172,7 +172,7 @@ for taxid in taxid_genomes:
                 found = True
                 break;
     if found:
-        outf.write(str(taxid) + "\t" + selected_op[3] + "\t" + selected_op[0] + 
+        outf.write(str(taxid) + "\t" + selected_op[3] + "\t" + selected_op[0] +
                     "\t"+ selected_op[1] + "\t" + selected_op[2]  + "\n")
         outf_download.write(downloader + selected_op[2] + " " + genomes_dir + "/" + str(taxid) + ".fna.gz;")
 outf.close()
@@ -235,7 +235,7 @@ print "Downloading reference genomes. This might take a while! ..."
 download_queue = Queue.Queue()
 inpf = open(genomes_to_download_path, 'r')
 
-# DELETE FOR TESTING ONLY 
+# DELETE FOR TESTING ONLY
 # for line in inpf:
 count = 0
 for line in inpf:

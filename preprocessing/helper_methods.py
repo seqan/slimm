@@ -6,7 +6,7 @@ import os
 import re
 import datetime
 import sys
-import urllib 
+import urllib
 import shutil
 import tarfile
 import Queue
@@ -64,7 +64,7 @@ def taxonomy_download(taxa_type, working_dir, today_string):
     new_file_path = taxa_folder_path + ".tar.gz"
     print "Downloading " + taxa_type + " file ..."
 
-    # DELETE FOR TESTING ONLY 
+    # DELETE FOR TESTING ONLY
     # old_taxa_folder_path = working_dir + "/.old/" + taxa_type + "_" + today_string
     # shutil.copytree(old_taxa_folder_path, taxa_folder_path)
     urllib.urlretrieve("ftp://ftp.ncbi.nih.gov/pub/taxonomy/" + taxa_type + ".tar.gz", new_file_path)
@@ -75,7 +75,7 @@ def download_one(download_queue, genomes_dir):
     q = download_queue.get()
     try:
         taxa_id = q[0]
-        url = q[1] 
+        url = q[1]
         destination = genomes_dir + "/" + str(taxa_id) + ".fna.gz"
         urllib.urlretrieve(url, destination)
     except Exception, e:

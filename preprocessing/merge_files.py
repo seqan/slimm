@@ -5,16 +5,16 @@ import os
 import re
 import gzip
 
-parser = argparse.ArgumentParser(description = 
-''' Download reference genomes of microorganisms  
+parser = argparse.ArgumentParser(description =
+''' Download reference genomes of microorganisms
 ''', formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument('-wd', '--workdir', type=str, 
+parser.add_argument('-wd', '--workdir', type=str,
                     help = 'The path of working directory where (intermidiate) results will be saved')
-parser.add_argument('-g', '--groups',  type=str, default = "AB", 
-                    help = '''Which group of microbes to consider any combination of the letters [A], [B] and [V] 
+parser.add_argument('-g', '--groups',  type=str, default = "AB",
+                    help = '''Which group of microbes to consider any combination of the letters [A], [B] and [V]
                     where B =  Bacteria, A = Archaea and V = Viruses and Viroids (default: AB)''')
-parser.add_argument('-d', '--database', type=str, choices = ['refseq', 'genbank'], default = 'refseq', 
+parser.add_argument('-d', '--database', type=str, choices = ['refseq', 'genbank'], default = 'refseq',
                     help = 'From which database references should be downloaded  (default: refseq)')
 
 args = parser.parse_args()

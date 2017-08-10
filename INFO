@@ -8,6 +8,6 @@ Description: Species Level Identification of Microbes from Metagenomes.
  SLIMM: Investigates which microbial species are present from a BAM/SAM
   alignment file(s). Given an alignment of metagenomic reads to a list
   of microbial reference genomes SLIMM produces a taxonomic profile that
-  contains the relative abundance of different  microbial species or 
-  lower clades present in the sample from where the reads are sequenced 
+  contains the relative abundance of different  microbial species or
+  lower clades present in the sample from where the reads are sequenced
   from.
