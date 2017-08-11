@@ -9,34 +9,35 @@ parser = argparse.ArgumentParser(description =
 ''' Download reference genomes of microorganisms
 ''', formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument('-wd', '--workdir', type=str,
+parser.add_argument('workdir', type=str,
                     help = 'The path of working directory where (intermidiate) results will be saved')
-parser.add_argument('-g', '--groups',  type=str, default = "AB",
-                    help = '''Which group of microbes to consider any combination of the letters [A], [B] and [V]
-                    where B =  Bacteria, A = Archaea and V = Viruses and Viroids (default: AB)''')
-parser.add_argument('-d', '--database', type=str, choices = ['refseq', 'genbank'], default = 'refseq',
-                    help = 'From which database references should be downloaded  (default: refseq)')
 
 args = parser.parse_args()
 
 working_dir = args.workdir
-groups = args.groups
-db_choice = args.database
+groups = ""
+db_choice = ""
 
-##############################################################################
-# For KNIME workflow only
-##############################################################################
-# working_dir     = flow_variables['workdir']
-# groups          = flow_variables['groups']
-# db_choice       = flow_variables['database']
+
 extension = ".fna.gz"
 genomes_dir = ""
 for file in os.listdir(working_dir):
     if "genomes" in file and not "genomes_to_download" in file:
-        genomes_dir =  file
+        genomes_dir = file
+    elif "genomes_to_download" in file:
+        groups = file
+    elif "assembly_summary_" in file:
+        db_choice = file
+
+
+groups = groups.replace("_genomes_to_download", "")
+groups = groups.replace(".txt", "")
+
+db_choice = db_choice.replace("assembly_summary_", "")
+db_choice = db_choice.replace(".txt", "")
 
 genomes_dir_path = working_dir + "/" + genomes_dir
-combined_genomes_file = genomes_dir.replace("genomes", (db_choice + "_" + groups)) + "_combined.fna"
+combined_genomes_file = groups + "_" + db_choice + "_combined.fna"
 combined_genomes_file_path = working_dir + "/" + combined_genomes_file
 
 

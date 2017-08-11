@@ -5,17 +5,21 @@ parser = argparse.ArgumentParser(description =
 ''' Download reference genomes of microorganisms
 ''', formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument('-wd', '--workdir', type=str,
-                    help = 'The path of working directory where (intermidiate) results will be saved')
+parser.add_argument('-wd', '--workdir', type=str, required=True,
+                    help = 'The path of working directory where (intermediate) results will be saved')
 parser.add_argument('-g', '--groups',  type=str, default = "AB",
                     help = '''Which group of microbes to consider any combination of the letters [A], [B] and [V]
-                    where B =  Bacteria, A = Archaea and V = Viruses and Viroids (default: AB)''')
+    where B =  Bacteria, A = Archaea and V = Viruses and Viroids (default: AB)''')
 parser.add_argument('-s', '--sp', dest='species_lv', action='store_true',
                     help = 'download one reference per species.')
-parser.add_argument('-t', '--threads',  type=int, choices=xrange(1, 11), default = 4,
+parser.add_argument('-t', '--taxa_ids',  type=str, default = "",
+                    help = '''comma separated list of taxonomic ids to be included (in addition to --groups) into
+    the reference database database. This way you might even add the genome of Eukaryotes.
+    e.g. the host genome''')
+parser.add_argument('-tr', '--threads',  type=int, choices=xrange(1, 11), default = 4,
                     help = 'number of threads for downloading in parallel in the range 1..10 (default: 4)')
 parser.add_argument('-ts', '--testing',  dest='testing', action='store_true',
-                    help = 'This is a test run work with only few downloads.')
+                    help = 'This is a test run. Download only few genomes.')
 
 args = parser.parse_args()
 
@@ -25,7 +29,17 @@ groups = args.groups
 only_species = args.species_lv
 db_choice = "refseq"
 testing = args.testing
-parallel        = flow_variables['threads']
+taxid_list = args.taxa_ids
+
+subset_taxids   = []
+if len(taxid_list) >= 1:
+    subset_taxids   = map(int, taxid_list.split(','))
+
+groups_name     = groups
+if len(groups_name) < 1:
+    groups_name = "CUSTOM"
+elif len(subset_taxids) >= 1:
+    groups_name += "_CUSTOM"
 
 
 ##############################################################################
@@ -83,7 +97,7 @@ if exists_genomes_to_download and exists_genomes and exists_assembly_summary and
     download_update = diff.days > 0
     # download_update = query_yes_no("The database is [" + str(diff.days) + "] days old. Do you realy want to update it?")
     if not download_update:
-        print "Database is already uptodate!"
+        print "Database is already up-to-date!"
         sys.exit(0)
     if not os.path.isdir(working_dir + "/.old/"):
         os.makedirs(working_dir + "/.old/")
@@ -119,7 +133,7 @@ try:
     catagories_path = taxcat_extract_dir + "/categories.dmp"
     reduced_names_path = slimmDB_dir + "/names.dmp"
     reduced_nodes_path = slimmDB_dir + "/nodes.dmp"
-    taxaid2sp_path=nodes_path.replace("nodes.dmp", "taxaid2sp_" + groups + ".dmp")
+    taxaid2sp_path=nodes_path.replace("nodes.dmp", "taxaid2sp_" + groups_name + ".dmp")
 
 
     assembly_summary_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt"
@@ -128,8 +142,8 @@ try:
 
     assembly_summary_file = working_dir + "/assembly_summary_" + db_choice + "_" + today_string + ".txt"
 
-    genomes_to_download_path = working_dir + "/" + groups + "_genomes_to_download.txt"
-    ncbi_get_script_path =  working_dir + "/" + groups + "_genomes_ncbi_download.sh"
+    genomes_to_download_path = working_dir + "/" + groups_name + "_genomes_to_download.txt"
+    ncbi_get_script_path =  working_dir + "/" + groups_name + "_genomes_ncbi_download.sh"
 
     print "Downloading assembly_summary file ..."
     urllib.urlretrieve(assembly_summary_url, assembly_summary_file)
@@ -150,7 +164,7 @@ try:
     inpf = open(catagories_path, 'r')
     for line in inpf:
         l = line.split('\t')
-        if l[0] in groups :
+        if l[0] in groups or int(l[1]) in subset_taxids or  int(l[2]) in subset_taxids:
             intial_taxids[int(l[1])] = 1
             intial_taxids[int(l[2])] = 1
     inpf.close()
@@ -298,7 +312,7 @@ try:
         names[int(l[0])] = l[1]
     inpf.close()
 
-    print "Reducing and updating nodes to interest groups i.e. [" + groups + "]"
+    print "Reducing and updating nodes to interest groups i.e. [" + groups_name + "]"
 
     inpf = open(names_path, 'r')
     for line in inpf:
