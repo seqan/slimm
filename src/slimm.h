@@ -393,20 +393,22 @@ void Read::addTarget(int32_t rID, uint32_t binNo)
 // ==========================================================================
 
 template <typename Type>
-Type getCutoffByQuantile (std::vector<Type> v,float q)
+Type getCutoffByQuantile (std::vector<Type> v, float q)
 {
+    if (v.empty())
+        return 0;
     Type total = std::accumulate(v.begin(), v.end(), (Type)0);
     Type cutoff = (Type)0, subTotal = (Type)0;
-    std::vector<Type> vals = v;
-    std::sort (vals.begin(), vals.end());
 
-    uint32_t i= vals.size() - 1;
+    std::sort (v.begin(), v.end());
+
+    uint32_t i= v.size() - 1;
     while((float(subTotal)/total) < q && i > (Type)0)
     {
-        subTotal += vals[i];
+        subTotal += v[i];
         --i;
     }
-    cutoff = vals[i];
+    cutoff = v[i];
 
     return cutoff;
 }
