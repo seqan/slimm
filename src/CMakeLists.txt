@@ -167,10 +167,11 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 # Update the list of file names below if you add source files to your application.
 add_executable(slimm    slimm.cpp
-                        slimm.h
-                        timer.h
-                        load_mapping_files.h)
-
+                        slimm.hpp
+                        timer.hpp
+                        read_stat.hpp
+                        reference_contig.hpp
+                        misc.hpp)
 
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (slimm ${SEQAN_LIBRARIES})
