@@ -61,15 +61,15 @@ typedef std::unordered_map <uint32_t, std::pair<uint32_t, std::string> > TNodes;
 typedef StringSet <Dna5String>                              SequenceList;
 typedef StringSet <CharString>                              StringList;
 
-typedef __uint16                                            __intSizeGCount;
-typedef __uint32                                            __intSizeBinWidth;
-typedef __uint32                                            __intSizeQCount;
-typedef __uint32                                            __intSizeGLength;
-typedef __uint16                                            __intSizeQLength;
-typedef __uint32                                            __intSizeMatchCount;
+typedef uint16_t                                            __intSizeGCount;
+typedef uint32_t                                            __intSizeBinWidth;
+typedef uint32_t                                            __intSizeQCount;
+typedef uint32_t                                            __intSizeGLength;
+typedef uint16_t                                            __intSizeQLength;
+typedef uint32_t                                            __intSizeMatchCount;
 
 typedef StringSet<String<__intSizeMatchCount> >             TMatchSet;
-typedef std::pair<__int32, uint32_t>                        TMatchPoint;
+typedef std::pair<uint32_t, uint32_t>                        TMatchPoint;
 typedef std::unordered_map <uint32_t, uint32_t>             TIntIntMap;
 typedef std::unordered_map <uint32_t, float>                TIntFloatMap;
 typedef std::unordered_map <uint32_t, std::string>          TIntStrMap;
@@ -234,11 +234,11 @@ public:
 class TargetRef
 {
 public:
-    __int32                    rID;
+    uint32_t                    rID;
     std::vector<uint32_t>      positions;
 
     //constructer takes a ref id and a position for the first time
-    TargetRef(__int32 ref, uint32_t pos)
+    TargetRef(uint32_t ref, uint32_t pos)
     {
         rID = ref;
         positions.reserve(10);
@@ -581,17 +581,20 @@ std::string getTSVFileName (const std::string& oPrefix, const std::string& inpfN
     return fName.insert(fName.size()-4, sfx);
 }
 
+
 // ----------------------------------------------------------------------------
 // Function setDateAndVersion()
 // ----------------------------------------------------------------------------
 
 void setDateAndVersion(ArgumentParser & parser)
 {
-    setDate(parser, __DATE__);
-    setShortDescription(parser, "Species Level Identification of Microbes from Metagenomes");
     setCategory(parser, "Metagenomics");
-#if defined(SEQAN_APP_VERSION)
-    setVersion(parser, SEQAN_APP_VERSION);
+
+#if defined(SEQAN_APP_VERSION) && defined(SEQAN_REVISION)
+    setVersion(parser, SEQAN_APP_VERSION " [" SEQAN_REVISION "]");
+#endif
+#if defined(SEQAN_DATE)
+    setDate(parser, SEQAN_DATE);
 #endif
 }
 
@@ -601,17 +604,10 @@ void setDateAndVersion(ArgumentParser & parser)
 
 void setDescription(ArgumentParser & parser)
 {
-    addDescription(parser,
-                   "Species Level Identification of Microbes from Metagenomes");
-    addDescription(parser,
-                   "See \\fIhttp://www.seqan.de/projects/slimm\\fP "
-                   "for more information.");
-    addDescription(parser,
-                   "Investigates which microbial species are present from "
-                   "a BAM/SAM alignment file .");
-    addDescription(parser, "(c) Copyright 2014-2017 by Temesgen H. Dadi.");
+    addDescription(parser, "SLIMM  Species Level Identification of Microbes from Metagenomes");
+    addDescription(parser, "See \\fI http://www.seqan.de/projects/slimm \\fP for more information.");
+    addDescription(parser, "(c) Copyright 2014-2017  by Temesgen H. Dadi.");
 }
-
 // --------------------------------------------------------------------------
 // Function getCovPercent()
 // --------------------------------------------------------------------------
@@ -870,7 +866,7 @@ inline void analyzeAlignments(Slimm & slimm,
             concatQLength += it->second.len;
             if(it->second.isUniq(slimm.matchedTaxa))
             {
-                __int32 rID = it->second.targets[0].rID;
+                uint32_t rID = it->second.targets[0].rID;
                 it->second.sumRefLengths += slimm.references[rID].length;
                 ++slimm.noOfUniqlyMatched;
 
@@ -892,7 +888,7 @@ inline void analyzeAlignments(Slimm & slimm,
                 for (size_t i=0; i < len; ++i)
                 {
 
-                    __int32 rID = it->second.targets[i].rID;
+                    uint32_t rID = it->second.targets[i].rID;
                     it->second.sumRefLengths += slimm.references[rID].length;
 
                     // ***** all of the matches in multiple pos will be counted *****
@@ -990,7 +986,7 @@ inline void filterAlignments(Slimm & slimm)
         it->second.update(slimm.matchedTaxa, slimm.validRefTaxonIDs, slimm.references);
         if(it->second.isUniq(slimm.matchedTaxa))
         {
-            __int32 rID = (it->second.targets[0]).rID;
+            uint32_t rID = (it->second.targets[0]).rID;
             slimm.references[rID].noOfUniqReads2 += 1;
             slimm.noOfUniqlyMatched2 += 1;
             uint32_t binNo = (it->second.targets[0]).positions[0];
@@ -1090,7 +1086,7 @@ inline void getReadLCACount(Slimm & slimm,
             size_t len = it->second.targets.size();
             for (size_t i=0; i < len; ++i)
             {
-                __int32 refID = (it->second.targets[i]).rID;
+                uint32_t refID = (it->second.targets[i]).rID;
                 taxaIDs.insert(slimm.matchedTaxa[refID]);
                 refIDs.insert(refID);
             }

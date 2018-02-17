@@ -34,21 +34,23 @@
 #include "slimm.h"
 
 using namespace seqan;
-// --------------------------------------------------------------------------
-// Function parseCommandLine()
-// --------------------------------------------------------------------------
-ArgumentParser::ParseResult
-parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char const ** argv)
+
+// ----------------------------------------------------------------------------
+// Function setupArgumentParser()
+// ----------------------------------------------------------------------------
+void setupArgumentParser(ArgumentParser & parser, AppOptions const & options)
 {
     // Setup ArgumentParser.
+    setAppName(parser, "slimm_sdasd");
+    setShortDescription(parser, "Species Level Identification of Microbes from Metagenomes");
+    setCategory(parser, "Metagenomics");
+
     setDateAndVersion(parser);
     setDescription(parser);
     // Define usage line and long description.
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \"\\fIIN\\fP\"");
 
-    // The input file/directory argument.
-    addArgument(parser,
-                ArgParseArgument(ArgParseArgument::INPUT_FILE, "IN"));
+    addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "IN"));
 
     // The output file argument.
     addOption(parser,
@@ -116,7 +118,14 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
                 "get taxonomic profiles from individual SAM/BAM files "
                 "located under \"\\fIexample-dir/\\fP\" and write them to tsv files "
                 "under \"\\fIslimm_reports/\\fP\" directory with their corsponding file names.");
+}
 
+// --------------------------------------------------------------------------
+// Function parseCommandLine()
+// --------------------------------------------------------------------------
+ArgumentParser::ParseResult
+parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char const ** argv)
+{
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
 
     if (res != ArgumentParser::PARSE_OK)
@@ -165,8 +174,10 @@ parseCommandLine(ArgumentParser & parser, AppOptions & options, int argc, char c
 int main(int argc, char const ** argv)
 {
     // Parse the command line.
-    ArgumentParser parser("slimm");
+    ArgumentParser parser;
     AppOptions options;
+    setupArgumentParser(parser, options);
+
     ArgumentParser::ParseResult res = parseCommandLine(parser, options, argc, argv);
 
     // If there was an error parsing or built-in argument parser functionality
