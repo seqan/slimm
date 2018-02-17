@@ -115,7 +115,6 @@ public:
 
 
     TNodes                                              nodes;
-    std::string                                         log_text;
     std::set<uint32_t>                                  valid_ref_taxon_ids;
     std::vector<uint32_t>                               matched_taxa;
     std::vector<reference_contig>                       references;
@@ -283,9 +282,13 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
 //collect the sam files to process
 inline void slimm::collect_bam_files()
 {
+    number_of_files = 1;
     if (options.is_directory)
     {
         _input_paths = get_bam_files_in_directory(options.input_path);
+        number_of_files = length(_input_paths);
+        if (options.verbose)
+            std::cerr << number_of_files << " SAM/BAM Files found under the directory: " << options.input_path << "!\n";
     }
     else
     {
@@ -297,12 +300,6 @@ inline void slimm::collect_bam_files()
             exit(1);
         }
     }
-
-    number_of_files = length(_input_paths);
-    log_text += std::to_string(number_of_files);
-    log_text += " SAM/BAM Files found under the directory: ";
-    log_text += options.input_path;
-    log_text += "! \n";
 }
 
 float slimm::coverage_cut_off()
@@ -451,6 +448,8 @@ inline void slimm::get_profiles()
 
             std::cerr<<"Writing taxnomic profile(s) ...................... ";
             write_output_files(nodes);
+            if (options.verbose)
+                std::cerr<<"\n.................................................. ";
             std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
 
@@ -534,13 +533,10 @@ inline void slimm::get_reads_lca_count(TNodes const & nodes)
 
 inline void slimm::print_filter_stat()
 {
-    std::cerr << "  " << length(valid_ref_taxon_ids)
-    << " passed the threshould coverage."<< std::endl;
-    std::cerr << "  " << failed_byCov << " ref's couldn't pass the coverage threshould." << std::endl;
-    std::cerr << "  " << failed_byUniqCov << " ref's couldn't pass the uniq coverage threshould." << std::endl;
-    std::cerr << "  Uniquily matching reads increased from "
-    << uniq_matches_count << " to "
-    << uniq_matches_count2 <<std::endl;
+    std::cerr << "  " << length(valid_ref_taxon_ids) << " passed the threshould coverage.\n";
+    std::cerr << "  " << failed_byCov << " ref's couldn't pass the coverage threshould.\n";
+    std::cerr << "  " << failed_byUniqCov << " ref's couldn't pass the uniq coverage threshould.\n";
+    std::cerr << "  uniquily matching reads increased from " << uniq_matches_count << " to " << uniq_matches_count2 <<"\n\n";
 }
 
 inline void slimm::print_matches_stat()
@@ -548,12 +544,10 @@ inline void slimm::print_matches_stat()
     std::cerr << "  "   << hits_count << " records processed." << std::endl;
     std::cerr << "    " << matches_count << " matching reads" << std::endl;
     std::cerr << "    " << uniq_matches_count << " uniquily matching reads"<< std::endl;
-    std::cerr << "Number of Ref with reads = " << reference_count << std::endl;
-    std::cerr << "Expected bins_coverage = " << expected_coverage() <<std::endl;
-    std::cerr << "bins_coverage Cutoff = " << coverage_cut_off()
-    << " (" << options.cov_cut_off <<" quantile)"<< std::endl;
-    std::cerr << "Uniqbins_coverage Cutoff = " << uniq_coverage_cut_off()
-    << " (" << options.cov_cut_off <<" quantile)"<< std::endl;
+    std::cerr << "  references with reads = " << reference_count << std::endl;
+    std::cerr << "  expected bins coverage = " << expected_coverage() <<std::endl;
+    std::cerr << "  bins coverage cut-off = " << coverage_cut_off() << " (" << options.cov_cut_off <<" quantile)\n";
+    std::cerr << "  uniq bins coverage cut-off = " << uniq_coverage_cut_off() << " (" << options.cov_cut_off <<" quantile)\n\n";
 }
 
 // load taxonomic information from slimmDB
@@ -566,13 +560,13 @@ inline void slimm::load_taxonomic_info()
     std::string nodes_path = options.mapping_dir + "/nodes.dmp";
     std::string names_path = options.mapping_dir + "/names.dmp";
 
-    std::cerr<<"Loding taxon_id to name mapping ... ";
+    std::cerr<<"Loading taxon_id to name mapping ................. ";
     taxon_id__name =  load_int__string_map(names_path);
-    std::cerr<<"in " << stop_watch.lap() <<" secs [OK!]" << std::endl << std::endl;
+    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
-    std::cerr<<"Loding node mapping ... " <<std::endl;
+    std::cerr<<"Loading node mapping ............................. ";
     nodes = load_node_maps(nodes_path);
-    std::cerr<<"in " << stop_watch.lap() <<" secs [OK!]" << std::endl << std::endl;
+    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 }
 
 uint32_t slimm::min_reads()
@@ -696,7 +690,6 @@ inline void slimm::write_output_files(TNodes & nodes,
     if (options.verbose)
     {
         std::cerr << "\n" << std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
-        std::cerr<<"\nWriting taxnomic profile(s) ...................... ";
     }
 }
 
@@ -711,7 +704,14 @@ inline void slimm::write_output_files(TNodes & nodes)
     }
 
     // calculate the total number of reads matching uniquily at that species level.
-    std::map<std::string, uint32_t>  read_count_at_rank = {{"all", 0}, {"species", 0}, {"genus", 0}, {"family", 0}, {"order", 0}, {"class", 0}, {"phylum", 0}, {"superkingdom", 0}};
+    std::map<std::string, uint32_t>  read_count_at_rank = { {"all", 0},
+                                                            {"species", 0},
+                                                            {"genus", 0},
+                                                            {"family", 0},
+                                                            {"order", 0},
+                                                            {"class", 0},
+                                                            {"phylum", 0},
+                                                            {"superkingdom", 0}};
     for (auto tID : taxon_id__readCount)
     {
         if (read_count_at_rank.find(nodes[tID.first].second) != read_count_at_rank.end() )
@@ -823,11 +823,10 @@ inline int get_taxonomic_profile(arg_options & options)
 
     std::string output_directory = get_directory(options.output_prefix);
 
-    std::cerr << "\n=================================================================" << std::endl;
-    std::cerr << "=================================================================" << std::endl;
-    std::cerr << total_hits_count << " SAM/BAM alignment records are proccessed."<<std::endl;
-    std::cerr << "extracted features are written to: " << output_directory <<std::endl;
-    std::cerr << "Total tame elapsed: " << stop_watch.elapsed() <<" secs"<<std::endl;
+    std::cerr << "\n*****************************************************************\n";
+    std::cerr << total_hits_count << " SAM/BAM alignment records are proccessed.\n";
+    std::cerr << "Taxonomic profiles are written to: \n   " << output_directory <<"\n";
+    std::cerr << "Total time elapsed: " << stop_watch.elapsed() <<" secs\n";
 
     return 0;
 }
