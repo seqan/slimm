@@ -43,13 +43,6 @@
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 
-#include <cereal/types/common.hpp>
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/archives/binary.hpp>
-
 #include "misc.hpp"
 
 using namespace seqan;
@@ -226,7 +219,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
                 return;
             if (options.verbose)
             {
-                std::cerr << "[VERBOSE MSG] mapping file: ["<< map_file_number <<"/"<< options.ac__taxid_paths.size() << "]\t\t";
+                std::cerr << "[VERBOSE MSG] mapping file: ["<< map_file_number <<"/"<< options.ac__taxid_paths.size() << "]\t";
                 std::cerr << "iter: [" << iter_number << "]\t";
                 std::cerr << "accessions left: ["<< accessions.size() << "/" << accessions_count <<"]\n";
                 ++iter_number;
@@ -268,7 +261,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
 // --------------------------------------------------------------------------
 inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const & options)
 {
-    std::cerr <<"[MSG] loading nodes and names mappings ...\n";
+    std::cerr <<"[MSG] loading nodes and names mappings from files ...\n";
     std::unordered_map<uint32_t, std::tuple<taxa_ranks, uint32_t> > taxid__parent;
     std::unordered_map<uint32_t, std::string>                       taxid__name;
 
@@ -290,6 +283,7 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
         std::getline(linestream, rank, '\t'); //fifth column is rank
         taxid__parent[taxid] = std::make_tuple(to_taxa_ranks(rank), parent_taxid);
     }
+
     taxid__parent_stream.close();
 
     while(std::getline(taxid__name_stream, line))
@@ -323,9 +317,7 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
             if (current_rank >= species_lv && current_rank <= superkingdom_lv)
             {
                 ac__taxid_it->second[current_rank] = tid;
-                auto tname_pos = slimm_db.taxid__name.find(tid);
-                if(tname_pos == slimm_db.taxid__name.end())
-                    slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
+                slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
             }
             tid = std::get<1>(tid_pos->second);
         }
@@ -360,23 +352,13 @@ int main(int argc, char const ** argv)
     fill_name_taxid_linage(slimm_db, options);
     save_slimm_database(slimm_db, options.output_path);
 
-//    slimm_database slimm_db2;
-//    load_slimm_database(slimm_db2, options.output_path);
 //
-//    std::vector<uint32_t> tids = slimm_db.ac__taxid["NC_004578.1"];
+//    std::vector<uint32_t> tids = slimm_db.ac__taxid["NZ_CP009257.1"];
 //    std::cout << "ACC: NC_004578.1 \t taxa id: " << tids[0] << "\n";
-//    for (uint32_t i=1; i<tids.size(); ++i)
+//    for (uint32_t i=0; i<tids.size(); ++i)
 //    {
 //        std::string r = from_taxa_ranks(static_cast<taxa_ranks>(i));
-//        std::cout << r << "\t" << "\t" << std::get<0>(slimm_db.taxid__name[tids[i]]) << ":" << std::get<1>(slimm_db.taxid__name[tids[i]])  << "\n";
-//    }
-//
-//    tids = slimm_db2.ac__taxid["NC_004578.1"];
-//    std::cout << "ACC: NC_004578.1 \t taxa id: " << tids[0] << "\n";
-//    for (uint32_t i=1; i<tids.size(); ++i)
-//    {
-//        std::string r = from_taxa_ranks(static_cast<taxa_ranks>(i));
-//        std::cout << r << "\t" << "\t" << std::get<0>(slimm_db2.taxid__name[tids[i]]) << ":" << std::get<1>(slimm_db2.taxid__name[tids[i]])  << "\n";
+//        std::cout << r << "\t" << from_taxa_ranks(std::get<0>(slimm_db.taxid__name[tids[i]])) << "\t" << tids[i] << "\t" << std::get<1>(slimm_db.taxid__name[tids[i]])  << "\n";
 //    }
 
     return 0;

@@ -68,7 +68,7 @@ struct arg_options
     std::string         rank;
     std::string         input_path;
     std::string         output_prefix;
-    std::string         mapping_dir;
+    std::string         database_path;
 
     arg_options() : cov_cut_off(0.99),
                     bin_width(0),
@@ -79,7 +79,7 @@ struct arg_options
                     rank("all"),
                     input_path(""),
                     output_prefix(""),
-                    mapping_dir("taxonomy/") {}
+                    database_path("") {}
 };
 
 // ----------------------------------------------------------------------------
@@ -92,7 +92,8 @@ public:
     slimm(arg_options op): options(op)
     {
         collect_bam_files();
-        load_taxonomic_info();
+        get_considered_ranks();
+        load_slimm_database(db, options.database_path);
     }
 
     arg_options                                         options;
@@ -114,14 +115,15 @@ public:
 
 
 
-    TNodes                                              nodes;
+    slimm_database                                      db;
     std::set<uint32_t>                                  valid_ref_taxon_ids;
     std::vector<uint32_t>                               matched_taxa;
+    std::vector<taxa_ranks>                             considered_ranks;
     std::vector<reference_contig>                       references;
     std::unordered_map<uint32_t, float>                 taxon_id__abundance;
-    std::unordered_map <uint32_t, std::string>          taxon_id__name;
+//    std::unordered_map <uint32_t, std::string>          taxon_id__name;
     std::unordered_map<std::string, read_stat>          reads;
-    std::unordered_map<uint32_t, uint32_t>              taxon_id__readCount;
+    std::unordered_map<uint32_t, uint32_t>              taxon_id__read_count;
     std::unordered_map<uint32_t, std::set<uint32_t> >   taxon_id__children;
 
     inline std::string current_bam_file_path()
@@ -142,7 +144,7 @@ public:
     inline float    uniq_coverage_cut_off();
     inline void     write_raw_output_file();
     inline void     write_output_files();
-    inline void     write_output_files(uint32_t const & read_count_at_rank, std::string const & rank);
+    inline void     write_output_files(uint32_t const & read_count_at_rank, taxa_ranks const & rank);
     inline void     write_to_file(std::string & filePath, std::vector<reference_contig> & refList);
 
 private:
@@ -155,13 +157,14 @@ private:
 
     // member functions
     inline void collect_bam_files();
+    inline void get_considered_ranks();
     inline void load_taxonomic_info();
 };
 
 
 inline void slimm::analyze_alignments(BamFileIn & bam_file)
 {
-    uint32_t queryLen = 0;
+    uint32_t query_len = 0;
     BamAlignmentRecord record;
     while (!atEnd(bam_file))
     {
@@ -169,113 +172,114 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
         if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
 
-        uint32_t newQueryLen = length(record.seq);
-        queryLen = (newQueryLen == 0) ? queryLen : newQueryLen;
-        uint32_t center_position =  std::min(record.beginPos + (queryLen/2),references[record.rID].length);
-        uint32_t relativeBinNo = center_position/options.bin_width;
+        uint32_t new_query_len = length(record.seq);
+        query_len = (new_query_len == 0) ? query_len : new_query_len;
+        uint32_t center_position =  std::min(record.beginPos + (query_len/2), references[record.rID].length);
+        uint32_t relative_bin_no = center_position/options.bin_width;
 
         // maintain read properties under slimm.reads
-        std::string readName = toCString(record.qName);
+        std::string read_name = toCString(record.qName);
         if(hasFlagFirst(record))
-            append(readName, ".1");
+            append(read_name, ".1");
         else if(hasFlagLast(record))
-            append(readName, ".2");
+            append(read_name, ".2");
         
-        // if there is no read with readName this will create one.
-        reads[readName].add_target(record.rID, relativeBinNo);
-        reads[readName].len = queryLen;
+        // if there is no read with read_name this will create one.
+        reads[read_name].add_target(record.rID, relative_bin_no);
+        reads[read_name].len = query_len;
         ++hits_count;
     }
 
-    if (hits_count != 0)
-    {
-        uint32_t concatQLength = 0;
-        for (auto it= reads.begin(); it != reads.end(); ++it)
-        {
-            concatQLength += it->second.len;
-            if(it->second.is_uniq(matched_taxa))
-            {
-                uint32_t reference_id = it->second.targets[0].reference_id;
-                it->second.refs_length_sum += references[reference_id].length;
-                ++uniq_matches_count;
 
-                size_t pos_count = (it->second.targets[0]).positions.size();
-                references[reference_id].reads_count += pos_count;
+    if (hits_count == 0)
+        return;
+
+    uint32_t query_length_sum = 0;
+    for (auto it= reads.begin(); it != reads.end(); ++it)
+    {
+        query_length_sum += it->second.len;
+        if(it->second.is_uniq(matched_taxa))
+        {
+            uint32_t reference_id = it->second.targets[0].reference_id;
+            it->second.refs_length_sum += references[reference_id].length;
+            ++uniq_matches_count;
+
+            size_t pos_count = (it->second.targets[0]).positions.size();
+            references[reference_id].reads_count += pos_count;
+            it->second.refs_length_sum += references[reference_id].length;
+            for (size_t j=0; j < pos_count; ++j)
+            {
+                uint32_t bin_number = (it->second.targets[0]).positions[j];
+                ++references[reference_id].cov.bins_height[bin_number];
+            }
+            references[reference_id].uniq_reads_count += 1;
+            uniq_hits_count += 1;
+            ++references[reference_id].uniq_cov.bins_height[(it->second.targets[0]).positions[0]];
+        }
+        else
+        {
+            size_t len = it->second.targets.size();
+            for (size_t i=0; i < len; ++i)
+            {
+
+                uint32_t reference_id = it->second.targets[i].reference_id;
                 it->second.refs_length_sum += references[reference_id].length;
-                for (size_t j=0; j < pos_count; ++j)
+
+                // ***** all of the matches in multiple pos will be counted *****
+                references[reference_id].reads_count += (it->second.targets[i]).positions.size();
+                for (auto bin_number : (it->second.targets[i]).positions)
                 {
-                    uint32_t bin_number = (it->second.targets[0]).positions[j];
                     ++references[reference_id].cov.bins_height[bin_number];
                 }
-                references[reference_id].uniq_reads_count += 1;
-                uniq_hits_count += 1;
-                ++references[reference_id].uniq_cov.bins_height[(it->second.targets[0]).positions[0]];
-            }
-            else
-            {
-                size_t len = it->second.targets.size();
-                for (size_t i=0; i < len; ++i)
-                {
-
-                    uint32_t reference_id = it->second.targets[i].reference_id;
-                    it->second.refs_length_sum += references[reference_id].length;
-
-                    // ***** all of the matches in multiple pos will be counted *****
-                    references[reference_id].reads_count += (it->second.targets[i]).positions.size();
-                    for (auto bin_number : (it->second.targets[i]).positions)
-                    {
-                        ++references[reference_id].cov.bins_height[bin_number];
-                    }
-                }
             }
         }
-        matches_count = reads.size();
+    }
+    matches_count = reads.size();
 
-        avg_read_length = concatQLength/matches_count;
-        float totalAb = 0.0;
-        for (uint32_t i=0; i<length(references); ++i)
+    avg_read_length = query_length_sum/matches_count;
+    float totalAb = 0.0;
+    for (uint32_t i=0; i<length(references); ++i)
+    {
+        if (references[i].reads_count > 0)
         {
-            if (references[i].reads_count > 0)
-            {
-                ++reference_count;
-                matched_ref_length += references[i].length;
-                references[i].relative_abundance = float(references[i].reads_count * 100)/hits_count;
-                totalAb += references[i].relative_abundance/references[i].length;
-            }
-            else
-            {
-                references[i].relative_abundance = 0.0;
-            }
+            ++reference_count;
+            matched_ref_length += references[i].length;
+            references[i].abundance = float(references[i].reads_count * 100)/hits_count;
+            totalAb += references[i].abundance/references[i].length;
         }
-        for (uint32_t i=0; i<length(references); ++i)
+        else
         {
-            if (references[i].reads_count > 0)
-            {
-                references[i].relative_abundance = (references[i].relative_abundance * 100) / (totalAb*references[i].length);
-            }
+            references[i].abundance = 0.0;
+        }
+    }
+    for (uint32_t i=0; i<length(references); ++i)
+    {
+        if (references[i].reads_count > 0)
+        {
+            references[i].abundance = (references[i].abundance * 100) / (totalAb*references[i].length);
+        }
+    }
+
+    totalAb = 0.0;
+    for (uint32_t i=0; i<length(references); ++i)
+    {
+        if (references[i].uniq_reads_count > 0)
+        {
+            references[i].uniq_abundance = float(references[i].uniq_reads_count * 100)/uniq_hits_count;
+            totalAb += references[i].uniq_abundance/references[i].length;
+        }
+        else
+        {
+            references[i].uniq_abundance = 0.0;
+        }
+    }
+    for (uint32_t i=0; i<length(references); ++i)
+    {
+        if (references[i].uniq_reads_count > 0)
+        {
+            references[i].uniq_abundance = (references[i].uniq_abundance * 100) / (totalAb*references[i].length);
         }
 
-        totalAb = 0.0;
-        for (uint32_t i=0; i<length(references); ++i)
-        {
-            if (references[i].uniq_reads_count > 0)
-            {
-                references[i].uniq_relative_abundance = float(references[i].uniq_reads_count * 100)/uniq_hits_count;
-                totalAb += references[i].uniq_relative_abundance/references[i].length;
-            }
-            else
-            {
-                references[i].uniq_relative_abundance = 0.0;
-            }
-        }
-        for (uint32_t i=0; i<length(references); ++i)
-        {
-            if (references[i].uniq_reads_count > 0)
-            {
-                references[i].uniq_relative_abundance = (references[i].uniq_relative_abundance * 100) / (totalAb*references[i].length);
-            }
-
-        }
     }
 }
 
@@ -328,17 +332,15 @@ float slimm::expected_coverage() const
 inline void slimm::filter_alignments()
 {
     uint32_t reference_count = length(references);
-    for (uint32_t i=0; i<reference_count; ++i)
+    for (uint32_t i=0; i < reference_count; ++i)
     {
-
         if (references[i].reads_count == 0)
             continue;
-        if (
-            references[i].cov_percent() >= coverage_cut_off() &&
-            references[i].uniq_cov_percent() >= uniq_coverage_cut_off() &&
-            true
-            )
-            valid_ref_taxon_ids.insert(matched_taxa[i]);
+        if (references[i].cov_percent() >= coverage_cut_off() &&
+            references[i].uniq_cov_percent() >= uniq_coverage_cut_off() && true)
+        {
+            valid_ref_taxon_ids.insert(db.ac__taxid[references[i].accession][0]);
+        }
         else
         {
             if(references[i].uniq_cov_percent() < uniq_coverage_cut_off())
@@ -384,11 +386,6 @@ inline void slimm::get_profiles()
 
     if (read_bam_file(bam_file, bam_header, current_bam_file_path()))
     {
-        CharString first_ref_name = contigNames(context(bam_file))[0];
-        
-        // Determine taxa id position
-        uint32_t taxon_id_pos = get_taxon_id_pos(first_ref_name);
-
         //if bin_width is not given use avg read length
         if (options.bin_width == 0) 
             options.bin_width = get_bin_width_from_sample(bam_file);
@@ -398,11 +395,11 @@ inline void slimm::get_profiles()
 
         read_bam_file(bam_file, bam_header, current_bam_file_path());
 
-        StringSet<CharString>   reference_names = contigNames(context(bam_file));
-        StringSet<uint32_t>     refLengths;
+        StringSet<CharString>    contig_names = contigNames(context(bam_file));
+        StringSet<uint32_t>      refLengths;
         refLengths = contigLengths(context(bam_file));
 
-        uint32_t references_count = length(reference_names);
+        uint32_t references_count = length(contig_names);
         references.resize(references_count);
 
         std::cerr<<"Intializing coverages for all reference genome ... ";
@@ -410,60 +407,68 @@ inline void slimm::get_profiles()
 
         for (uint32_t i=0; i < references_count; ++i)
         {
-            reference_contig current_ref(reference_names[i], refLengths[i], options.bin_width, taxon_id_pos);
+            std::string accession(toCString(contig_names[i]));
+            reference_contig current_ref(accession, db.ac__taxid[accession][0], refLengths[i], options.bin_width);
             references[i] = current_ref;
-            matched_taxa.push_back(current_ref.taxon_id);
+            matched_taxa.push_back(db.ac__taxid[accession][0]);
         }
         std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-
 
         std::cerr<<"Analysing alignments, reads and references ....... ";
         analyze_alignments(bam_file);
         std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-        if (hits_count > 0)
-        {
-            // Set the minimum reads to 10k-th of the total number of matched reads if not set by the user
-            if (options.min_reads == 0)
-              options.min_reads = 1 + ((matches_count - 1) / 10000);
-            if (options.verbose)
-                print_matches_stat();
-
-            std::cerr   << "Filtering unlikely sequences ..................... ";
-            filter_alignments();
-            std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-
-            if (options.verbose)
-                print_filter_stat();
-
-            if (options.raw_output)
-            {
-                std::cerr<<"Writing features to a file ....................... ";
-                write_raw_output_file();
-                std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-            }
-
-            std::cerr<<"Assigning reads to Least Common Ancestor (LCA) ... ";
-            get_reads_lca_count();
-            std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-
-            std::cerr<<"Writing taxnomic profile(s) ...................... ";
-            write_output_files();
-            if (options.verbose)
-                std::cerr<<"\n.................................................. ";
-            std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-
-
-        }
-
-        else
+        if (hits_count == 0)
         {
             std::cerr << "[WARNING] No mapped reads found in BAM file!" << std::endl;
+            return;
         }
-        
+
+        // Set the minimum reads to 10k-th of the total number of matched reads if not set by the user
+        if (options.min_reads == 0)
+          options.min_reads = 1 + ((matches_count - 1) / 10000);
+        if (options.verbose)
+            print_matches_stat();
+
+        std::cerr   << "Filtering unlikely sequences ..................... ";
+        filter_alignments();
+        std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+
+        if (options.verbose)
+            print_filter_stat();
+
+        if (options.raw_output)
+        {
+            std::cerr<<"Writing features to a file ....................... ";
+            write_raw_output_file();
+            std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+        }
+
+        std::cerr<<"Assigning reads to Least Common Ancestor (LCA) ... ";
+        get_reads_lca_count();
+        std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+
+        std::cerr<<"Writing taxnomic profile(s) ...................... ";
+        write_output_files();
+        if (options.verbose)
+            std::cerr<<"\n.................................................. ";
+        std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+
         std::cerr<<"[Done!] File took " << stop_watch.elapsed() <<" secs to process.\n";
     }
 }
 
+inline void slimm::get_considered_ranks()
+{
+    if(options.rank == "all")
+    {
+        for(uint32_t i=1; i<8; ++i)
+            considered_ranks.push_back(static_cast<taxa_ranks>(i));
+    }
+    else
+    {
+        considered_ranks.push_back(to_taxa_ranks(options.rank));
+    }
+}
 inline void slimm::get_reads_lca_count()
 {
     // put the non-unique read to upper taxa.
@@ -471,7 +476,7 @@ inline void slimm::get_reads_lca_count()
     {
         if(!(it->second.is_uniq(matched_taxa)))
         {
-            uint32_t lcaTaxaID = 0;
+            uint32_t lca_taxa_id = 0;
             std::set<uint32_t> ref_ids = {};
             std::set<uint32_t> taxon_ids;
             size_t len = it->second.targets.size();
@@ -481,52 +486,64 @@ inline void slimm::get_reads_lca_count()
                 taxon_ids.insert(matched_taxa[ref_id]);
                 ref_ids.insert(ref_id);
             }
-            lcaTaxaID = getLCA(taxon_ids, nodes);
-            taxon_id__children[lcaTaxaID].insert(ref_ids.begin(), ref_ids.end());
+            lca_taxa_id = get_lca(taxon_ids, db);
+            taxon_id__children[lca_taxa_id].insert(ref_ids.begin(), ref_ids.end());
             // If taxon_id already exists
-            if (taxon_id__readCount.count(lcaTaxaID) == 1)
-                ++taxon_id__readCount[lcaTaxaID];
+            if (taxon_id__read_count.count(lca_taxa_id) == 1)
+                ++taxon_id__read_count[lca_taxa_id];
             else   // first time for taxon_id
-                taxon_id__readCount[lcaTaxaID] = 1;
+                taxon_id__read_count[lca_taxa_id] = 1;
             //add the contributing children references to the taxa
         }
     }
-    //add the sum of read counts of children all ancestors of the LCA
-    std::unordered_map <uint32_t, uint32_t> tID2ReadCountCopy = taxon_id__readCount;
-    for (auto t2rc : tID2ReadCountCopy)
+
+
+    //add the sum of read counts of children to all ancestors of the LCA
+    std::unordered_map <uint32_t, uint32_t> taxon_id__read_count_cp = taxon_id__read_count;
+    uint32_t contributer_taxa_id = 0,  reciever_taxa_id = 0, read_count = 0, uniqCount = 0;
+    for(auto ac__taxid_it=db.ac__taxid.begin(); ac__taxid_it != db.ac__taxid.end(); ++ac__taxid_it)
     {
-        uint32_t currentTaxaID = t2rc.first;
-        uint32_t readCount = tID2ReadCountCopy[currentTaxaID];
-        std::set<uint32_t> ref_ids = taxon_id__children[currentTaxaID];
-        while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+        for (uint32_t i=0; i<LINAGE_LENGTH-1; ++i)
         {
-            currentTaxaID = (nodes.at(currentTaxaID)).first;
-            if (taxon_id__readCount.count(currentTaxaID) >= 1)
-                taxon_id__readCount[currentTaxaID] += readCount;
-            else
-                taxon_id__readCount[currentTaxaID] = readCount;
-            //add the contributing children references to the taxa
-            taxon_id__children[currentTaxaID].insert(ref_ids.begin(), ref_ids.end());
+            contributer_taxa_id = ac__taxid_it->second[i];
+            if (taxon_id__read_count_cp.find(contributer_taxa_id) != taxon_id__read_count_cp.end())
+            {
+                std::set<uint32_t> ref_ids = taxon_id__children[contributer_taxa_id];
+                read_count = taxon_id__read_count_cp[contributer_taxa_id];
+                for (uint32_t j=i+1; i<LINAGE_LENGTH; ++i)
+                {
+                    reciever_taxa_id = ac__taxid_it->second[j];
+                    if (taxon_id__read_count.count(reciever_taxa_id) >= 1)
+                        taxon_id__read_count[reciever_taxa_id] += read_count;
+                    else
+                        taxon_id__read_count[reciever_taxa_id] = read_count;
+                    //add the contributing children references to the taxa
+                    taxon_id__children[reciever_taxa_id].insert(ref_ids.begin(), ref_ids.end());
+                }
+
+            }
+
         }
     }
 
 
     for (uint32_t i=0; i<length(references); ++i)
     {
-
         if (references[i].uniq_reads_count2 > 0)
         {
-            uint32_t currentTaxaID = references[i].taxon_id;
-            uint32_t uniqCount = references[i].uniq_reads_count2;
-            while (nodes.count(currentTaxaID) == 1 && currentTaxaID != 0)
+            std::vector<uint32_t> linage = db.ac__taxid[references[i].accession];
+            uniqCount = references[i].uniq_reads_count2;
+            std::set<uint32_t> ref_ids = taxon_id__children[linage[0]];
+            for (uint32_t j=1; j<LINAGE_LENGTH; ++j)
             {
-                if (taxon_id__readCount.count(currentTaxaID) >= 1)
-                    taxon_id__readCount[currentTaxaID] += uniqCount;
+                reciever_taxa_id = linage[j];
+                if (taxon_id__read_count.count(reciever_taxa_id) >= 1)
+                    taxon_id__read_count[reciever_taxa_id] += uniqCount;
                 else
-                    taxon_id__readCount[currentTaxaID] = uniqCount;
-                taxon_id__children[currentTaxaID].insert(i);
+                    taxon_id__read_count[reciever_taxa_id] = uniqCount;
                 //add the contributing children references to the taxa
-                currentTaxaID = (nodes.at(currentTaxaID)).first;
+                taxon_id__children[reciever_taxa_id].insert(i);
+                taxon_id__children[reciever_taxa_id].insert(ref_ids.begin(), ref_ids.end());
             }
         }
     }
@@ -552,23 +569,23 @@ inline void slimm::print_matches_stat()
 }
 
 // load taxonomic information from slimmDB
-inline void slimm::load_taxonomic_info()
-{
-    Timer<>  stop_watch;
-    std::stringstream ss;
-    std::ofstream sam_extract_file;
-
-    std::string nodes_path = options.mapping_dir + "/nodes.dmp";
-    std::string names_path = options.mapping_dir + "/names.dmp";
-
-    std::cerr<<"Loading taxon_id to name mapping ................. ";
-    taxon_id__name =  load_int__string_map(names_path);
-    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-
-    std::cerr<<"Loading node mapping ............................. ";
-    nodes = load_node_maps(nodes_path);
-    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-}
+//inline void slimm::load_taxonomic_info()
+//{
+//    Timer<>  stop_watch;
+//    std::stringstream ss;
+//    std::ofstream sam_extract_file;
+//
+//    std::string nodes_path = options.mapping_dir + "/nodes.dmp";
+//    std::string names_path = options.mapping_dir + "/names.dmp";
+//
+//    std::cerr<<"Loading taxon_id to name mapping ................. ";
+//    taxon_id__name =  load_int__string_map(names_path);
+//    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+//
+//    std::cerr<<"Loading node mapping ............................. ";
+//    nodes = load_node_maps(nodes_path);
+//    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+//}
 
 uint32_t slimm::min_reads()
 {
@@ -628,65 +645,70 @@ float slimm::uniq_coverage_cut_off()
     return _uniq_coverage_cut_off;
 }
 
-inline void slimm::write_output_files(uint32_t const & read_count_at_rank,
-                                      std::string const & rank)
+inline void slimm::write_output_files(uint32_t const & read_count_at_rank, taxa_ranks  const & rank)
 {
 
-    std::string tsvFile = get_tsv_file_name(toCString(options.output_prefix), current_bam_file_path(), rank);
-    std::ofstream abundunceFile;
-    abundunceFile.open(tsvFile);
+    std::string abundunce_tsv_path = get_tsv_file_name(toCString(options.output_prefix), current_bam_file_path(), from_taxa_ranks(rank));
+    std::ofstream abundunce_stream;
+    abundunce_stream.open(abundunce_tsv_path);
 
-    uint32_t unknownReads = matches_count-read_count_at_rank;
+    uint32_t unknown_reads_count = matches_count - read_count_at_rank;
     uint32_t count = 0;
     uint32_t faild_count = 0;
-    float faildAbundunce = 0.0;
-    std::unordered_map <uint32_t, float> cladeCov;
-    std::unordered_map <uint32_t, float> cladeAbundance;
+    float faild_abundunce = 0.0;
+    std::unordered_map <uint32_t, float> clade_cov;
+    std::unordered_map <uint32_t, float> clade_abundance;
     count = 1;
-    abundunceFile<<"No.\tName\tTaxid\tNoOfReads\tRelativeAbundance\tContributers\tbins_coverage\n";
-    for (auto tID : taxon_id__readCount) {
-        if (rank == nodes[tID.first].second)
-        {
-            uint32_t cLength = 0;
-            uint32_t noOfContribs = 0;
-            std::set<uint32_t>::iterator it;
-            for (it=taxon_id__children.at(tID.first).begin();
-                 it!=taxon_id__children.at(tID.first).end(); ++it)
-            {
-                cLength += references[*it].length;
-                ++noOfContribs;
-            }
-            cLength = cLength/noOfContribs;
-            float cov = float(tID.second * avg_read_length)/cLength;
 
-            float relative_abundance = float(tID.second)/(matches_count) * 100;
-            std::unordered_map <uint32_t, std::string>::const_iterator it2 =
-            taxon_id__name.find (tID.first);
-            if (relative_abundance == 0.001 || cov < coverage_cut_off())
+    abundunce_stream << "taxa_level\ttaxa_id\tlinage\tname\tabundance\tread_count\tchildren_count\n";
+    for (auto t_id : taxon_id__read_count)
+    {
+        if (rank == std::get<0>(db.taxid__name[t_id.first]))
+        {
+            std::set<uint32_t>::iterator it;
+            uint32_t genome_Length = 0;
+            uint32_t children_count = 0;
+            std::string last_child_acc = "";
+            for (auto child : taxon_id__children.at(t_id.first))
             {
-                faildAbundunce += relative_abundance;
+                genome_Length += references[child].length;
+                last_child_acc = references[child].accession;
+                ++children_count;
+            }
+            genome_Length = genome_Length/children_count;
+            float cov = float(t_id.second * avg_read_length)/genome_Length;
+
+            float abundance = float(t_id.second)/(matches_count) * 100;
+
+            if (abundance == 0.001 || cov < coverage_cut_off())
+            {
+                faild_abundunce += abundance;
                 ++faild_count;
                 continue;
             }
-            seqan::CharString candidateName = "Organism name not found";
-            if (it2 != taxon_id__name.end())
-                candidateName = (taxon_id__name.at(tID.first));
-            abundunceFile   << count << "\t"
-            << candidateName << "\t"
-            << tID.first << "\t"
-            << tID.second << "\t"
-            << relative_abundance << "\t"
-            << taxon_id__children.at(tID.first).size() << "\t"
-            << cov << "\n";
+
+            std::vector<uint32_t> linage = db.ac__taxid[last_child_acc];
+            std::string linage_str = "";
+            for (uint32_t i=LINAGE_LENGTH-1; i > rank; --i)
+            {
+                linage_str += " >";
+                linage_str += std::get<1>(db.taxid__name[linage[i]]);
+            }
+
+            std::string candidate_name = std::get<1>(db.taxid__name[t_id.first]);
+            if (candidate_name == "")
+                candidate_name = "no_name_" + from_taxa_ranks(rank);
+            abundunce_stream << from_taxa_ranks(rank) << "\t" << t_id.first << "\t" << linage_str << "\t" << candidate_name << "\t";
+            abundunce_stream << abundance << "\t" << t_id.second << "\t" << children_count << "\n";
             ++count;
         }
 
     }
-    float unknownAbundance = float(unknownReads)/ matches_count * 100 + faildAbundunce;
+    float unknownAbundance = float(unknown_reads_count)/ matches_count * 100 + faild_abundunce;
 
-    abundunceFile   << count << "\tunknown_"<< rank<< "(multiple)" << "\t0\t"
-    << unknownReads << "\t" << unknownAbundance << "\t0\t0.0\n";
-    abundunceFile.close();
+    abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << "-" << "\t" << "\tunknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
+    abundunce_stream << unknownAbundance << "\t" << unknown_reads_count << "\t" << "0" << "\n";
+    abundunce_stream.close();
     if (options.verbose)
     {
         std::cerr << "\n" << std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
@@ -695,32 +717,25 @@ inline void slimm::write_output_files(uint32_t const & read_count_at_rank,
 
 inline void slimm::write_output_files()
 {
-    std::vector<std::string> const all_ranks= {"species", "genus", "family", "order", "class", "phylum", "superkingdom"};
-    std::vector<std::string> considered_ranks = {options.rank};
-    if(options.rank == "all")
-    {
-        considered_ranks.resize(7);
-        considered_ranks = all_ranks;
-    }
-
     // calculate the total number of reads matching uniquily at that species level.
-    std::map<std::string, uint32_t>  read_count_at_rank = { {"all", 0},
-                                                            {"species", 0},
-                                                            {"genus", 0},
-                                                            {"family", 0},
-                                                            {"order", 0},
-                                                            {"class", 0},
-                                                            {"phylum", 0},
-                                                            {"superkingdom", 0}};
-    for (auto tID : taxon_id__readCount)
+    std::map<taxa_ranks, uint32_t>  read_count_at_rank = {  {strain_lv, 0},
+                                                            {species_lv, 0},
+                                                            {genus_lv, 0},
+                                                            {family_lv, 0},
+                                                            {order_lv, 0},
+                                                            {class_lv, 0},
+                                                            {phylum_lv, 0},
+                                                            {superkingdom_lv, 0}};
+
+    for (auto t_id : taxon_id__read_count)
     {
-        if (read_count_at_rank.find(nodes[tID.first].second) != read_count_at_rank.end() )
+        if (read_count_at_rank.find(std::get<0>(db.taxid__name[t_id.first])) != read_count_at_rank.end() )
         {
-            read_count_at_rank[nodes[tID.first].second] +=  tID.second ;     // found
+            read_count_at_rank[std::get<0>(db.taxid__name[t_id.first])] +=  t_id.second ;     // found
         }
     }
 
-    for (std::string rank : considered_ranks)
+    for (taxa_ranks rank : considered_ranks)
     {
         write_output_files(read_count_at_rank[rank], rank);
     }
@@ -728,8 +743,8 @@ inline void slimm::write_output_files()
 
 inline void slimm::write_raw_output_file()
 {
-    std::string tsvFile = get_tsv_file_name(options.output_prefix, current_bam_file_path());
-    write_to_file(tsvFile, references);
+    std::string tsv_path = get_tsv_file_name(options.output_prefix, current_bam_file_path());
+    write_to_file(tsv_path, references);
 }
 
 inline void slimm::write_to_file(std::string & filePath, std::vector<reference_contig> & refList)
@@ -737,32 +752,31 @@ inline void slimm::write_to_file(std::string & filePath, std::vector<reference_c
     std::ofstream features_file;
     features_file.open(filePath);
 
-    features_file <<    "No.\t"
-    "CandidateName\t"
-    "Taxid\t"
-    "NoOfReads\t"
-    "RelAbundance\t"
-    "RelAbundanceUniq\t"
-    "RelAbundanceUniq2\t"
-    "GenomeLength\t"
-    "NoOfUniqueReads\t"
-    "NoOfUniqueReads2\t"
+    features_file << "No.\t"
+    "accesion\t"
+    "taxaid\t"
+    "name\t"
+    "reads_count\t"
+    "abundance\t"
+    "uniq1_abundance\t"
+    "uniq2_abundance\t"
+    "genome_length\t"
+    "uniq1_reads_count\t"
+    "uniq2_reads_count\t"
 
-    "NoOfBins\t"
-    "none_zero_bin_count\t"
-    "none_zero_bin_countUniq\t"
-    "none_zero_bin_countUniq2\t"
+    "bins_count\t"
+    "bins_count(>0)\t"
+    "uniq1_bins_count(>0)\t"
+    "uniq2_bins_count(>0)\t"
 
+    "coverage_depth\t"
+    "uniq1_coverage_depth\t"
+    "uniq2_coverage_depth\t"
 
-    "bins_coverageDepth\t"
-
-    "Uniqbins_coverageDepth\t"
-    "Uniqbins_coverageDepth2\t"
-
-    "MappingError\t"
-    "bins_coveragePercentage\t"
-    "Uniquebins_coveragePercentage\t"
-    "Uniquebins_coveragePercentage2\n";
+    "mapping_error\t"
+    "coverage(%)\t"
+    "uniq1_coverage(%)\t"
+    "uniq2_coverage(%)\n";
 
     uint32_t current = 0;
     uint32_t reference_count = length(refList);
@@ -770,18 +784,18 @@ inline void slimm::write_to_file(std::string & filePath, std::vector<reference_c
     {
         current ++;
         reference_contig current_ref = refList[i];
-        CharString candidateName = current_ref.reference_name;
-        std::unordered_map <uint32_t, std::string>::const_iterator it = taxon_id__name.find(current_ref.taxon_id);
-        if (it != taxon_id__name.end())
-            candidateName = (taxon_id__name.at(current_ref.taxon_id));
-
+        uint32_t taxa_id = db.ac__taxid[current_ref.accession][0];
+        std::string candidate_name = std::get<1>(db.taxid__name[taxa_id]);
+        if (candidate_name == "")
+            candidate_name = "no_name_found";
         features_file   << current << "\t"
-        << candidateName << "\t"
-        << current_ref.taxon_id << "\t"
+        << current_ref.accession << "\t"
+        << taxa_id << "\t"
+        << candidate_name << "\t"
         << current_ref.reads_count << "\t"
-        << current_ref.relative_abundance << "\t"
-        << current_ref.uniq_relative_abundance << "\t"
-        << current_ref.uniq_relative_abundance2 << "\t"
+        << current_ref.abundance << "\t"
+        << current_ref.uniq_abundance << "\t"
+        << current_ref.uniq_abundance2 << "\t"
         << current_ref.length << "\t"
         << current_ref.uniq_reads_count << "\t"
         << current_ref.uniq_reads_count2 << "\t"

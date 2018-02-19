@@ -100,7 +100,8 @@ private:
 class reference_contig
 {
 public:
-    CharString          reference_name;
+    std::string         accession;
+    uint32_t            taxa_id;
     bool                is_valid;
     uint32_t            length;
     uint32_t            reads_count;
@@ -109,13 +110,13 @@ public:
     bins_coverage       cov;
     bins_coverage       uniq_cov;
     bins_coverage       uniq_cov2;
-    uint32_t            taxon_id;
-    float               relative_abundance;
-    float               uniq_relative_abundance;
-    float               uniq_relative_abundance2;
+    float               abundance;
+    float               uniq_abundance;
+    float               uniq_abundance2;
 
-    reference_contig(): reference_name(""),
+    reference_contig(): accession(""),
                         is_valid(false),
+                        taxa_id(0),
                         length(0),
                         reads_count(0),
                         uniq_reads_count(0),
@@ -123,30 +124,27 @@ public:
                         cov(),
                         uniq_cov(),
                         uniq_cov2(),
-                        taxon_id(0),
-                        relative_abundance(0.0),
-                        uniq_relative_abundance(0.0),
-                        uniq_relative_abundance2(0.0){}
+                        abundance(0.0),
+                        uniq_abundance(0.0),
+                        uniq_abundance2(0.0){}
 
-    reference_contig(CharString ref_name, uint32_t ref_length, uint32_t bin_width, uint32_t taxon_id_pos):
-                        reference_name(ref_name),
+    reference_contig(std::string & ref_name, uint32_t t_id, uint32_t ref_length, uint32_t bin_width):
+                        accession(ref_name),
+                        taxa_id(t_id),
                         is_valid(false),
                         length(ref_length),
                         reads_count(0),
                         uniq_reads_count(0),
                         uniq_reads_count2(0),
-                        relative_abundance(0.0),
-                        uniq_relative_abundance(0.0),
-                        uniq_relative_abundance2(0.0) 
+                        abundance(0.0),
+                        uniq_abundance(0.0),
+                        uniq_abundance2(0.0) 
                         {
                             // Intialize coverages based on the length of a refSeq
                             bins_coverage tmp_cov(ref_length, bin_width);
                             cov = tmp_cov;
                             uniq_cov = tmp_cov;
                             uniq_cov2 = tmp_cov;
-                            StringSet <CharString> chunks;
-                            strSplit(chunks, ref_name, EqualsChar<'|'>());
-                            taxon_id = atoi(toCString(chunks[taxon_id_pos]));
                         }
 
     //Member functions

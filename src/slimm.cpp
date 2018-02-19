@@ -66,48 +66,29 @@ void setupArgumentParser(ArgumentParser & parser, arg_options const & options)
     setDateAndVersion(parser);
     setDescription(parser);
     // Define usage line and long description.
-    addUsageLine(parser, "[\\fIOPTIONS\\fP] \"\\fIIN\\fP\"");
+    addUsageLine(parser, "[\\fIOPTIONS\\fP] \"\\fIDB\\fP\" \"\\fIIN\\fP\"");
 
-    addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "IN"));
+    addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "DB"));
+    setValidValues(parser, 0, ".sldb");
+    addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_PREFIX, "IN"));
 
     // The output file argument.
-    addOption(parser,
-              ArgParseOption("o", "output-prefix", "output path prefix.",
-                             ArgParseArgument::OUTPUT_PREFIX));
-    addOption(parser,
-              ArgParseOption("m",
-                             "mapping-files",
-                             "directory containing various mapping files "
-                             "(names.dmp and nodes.dmp).",
-                             ArgParseOption::STRING));
+    addOption(parser, ArgParseOption("o", "output-prefix", "output path prefix.", ArgParseArgument::OUTPUT_PREFIX));
 
-    addOption(parser,
-              ArgParseOption("w",
-                             "bin-width",
-                             "Set the width of a single bin in neuclotides.",
-                             ArgParseArgument::INTEGER, "INT"));
-    addOption(parser,
-              ArgParseOption("mr",
-                             "min-reads",
-                             "Minimum number of matching reads to consider "
-                             "a reference present.",
-                             ArgParseArgument::INTEGER, "INT"));
-    addOption(parser,
-              ArgParseOption("r", "rank",
-                             "The taxonomic rank of identification", ArgParseOption::STRING));
+    addOption(parser, ArgParseOption("w", "bin-width", "Set the width of a single bin in neuclotides.",
+                                     ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("mr", "min-reads", "Minimum number of matching reads to consider a reference present.",
+                                     ArgParseArgument::INTEGER, "INT"));
+
+    addOption(parser, ArgParseOption("r", "rank", "The taxonomic rank of identification", ArgParseOption::STRING));
     setValidValues(parser, "rank", options.rankList);
     setDefaultValue(parser, "rank", options.rank);
-
 
     setDefaultValue(parser, "bin-width", options.bin_width);
     setDefaultValue(parser, "min-reads", options.min_reads);
 
-    addOption(parser,
-              ArgParseOption("c",
-                             "cov-cutoff",
-                             "the quantile of coverages to use as a cutoff "
-                             "smaller value means bigger threshold.",
-                             ArgParseArgument::DOUBLE, "DOUBLE"));
+    addOption(parser, ArgParseOption("c", "cov-cutoff", "the quantile of coverages to use as a cutoff smaller value means bigger threshold.",
+                                     ArgParseArgument::DOUBLE, "DOUBLE"));
 
     setMinValue(parser, "cov-cutoff", "0.0");
     setMaxValue(parser, "cov-cutoff", "1.0");
@@ -150,9 +131,6 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
         return res;
 
     // Extract option values.
-    if (isSet(parser, "mapping-files"))
-        getOptionValue(options.mapping_dir, parser, "mapping-files");
-
     if (isSet(parser, "bin-width"))
         getOptionValue(options.bin_width, parser, "bin-width");
 
@@ -174,12 +152,12 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
     if (isSet(parser, "raw-output"))
         options.raw_output = true;
 
-    getArgumentValue(options.input_path, parser, 0);
+    getArgumentValue(options.database_path, parser, 0);
+    getArgumentValue(options.input_path, parser, 1);
 
     getOptionValue(options.output_prefix, parser, "output-prefix");
     if (!isSet(parser, "output-prefix"))
         options.output_prefix = options.input_path;
-
 
     return ArgumentParser::PARSE_OK;
 }

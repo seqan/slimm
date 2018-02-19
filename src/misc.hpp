@@ -10,6 +10,13 @@ uint32_t const LINAGE_LENGTH = 8;
 #include <map>
 #include <utility>
 
+#include <cereal/types/common.hpp>
+#include <cereal/types/tuple.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/archives/binary.hpp>
+
 // ==========================================================================
 // Classes
 // ==========================================================================
@@ -420,10 +427,10 @@ uint32_t getLCA(std::set<uint32_t> const & taxon_ids, std::set<uint32_t> const &
     return *(parents.begin());
 }
 
-bool get_taxon_id(uint32_t &idPosition, CharString reference_name, std::string idType)
+bool get_taxon_id(uint32_t &idPosition, CharString accession, std::string idType)
 {
     StringSet <CharString> chunks;
-    strSplit(chunks, reference_name, EqualsChar<'|'>());
+    strSplit(chunks, accession, EqualsChar<'|'>());
     //check for slimm taxid
     for (uint32_t i = 0; i <  length(chunks) ; ++i)
     {
@@ -453,6 +460,44 @@ uint32_t getLCA(std::vector<uint32_t> const & taxon_ids, TNodes const & nodes)
 }
 
 
+uint32_t get_lca(std::set<uint32_t> const & taxon_ids, std::set<uint32_t> const & valid_taxon_ids, slimm_database const & slimm_db)
+{
+    std::vector<std::set<uint32_t> > taxa_rank_set;
+    taxa_rank_set.resize(LINAGE_LENGTH);
+
+    for(auto ac__taxid_it=slimm_db.ac__taxid.begin(); ac__taxid_it != slimm_db.ac__taxid.end(); ++ac__taxid_it)
+    {
+        uint32_t tid = ac__taxid_it->second[0];
+        if(taxon_ids.find(tid) != taxon_ids.end())
+        {
+            for (uint32_t i=0; i<LINAGE_LENGTH; ++i)
+            {
+                taxa_rank_set[i].insert(ac__taxid_it->second[i]);
+            }
+        }
+    }
+    for (uint32_t i=0; i<LINAGE_LENGTH; ++i)
+    {
+        if (taxa_rank_set[i].size() == 1)
+            return *(taxa_rank_set[i].begin());
+    }
+    return 1;
+}
+
+uint32_t get_lca(std::set<uint32_t> const & taxon_ids, slimm_database const & slimm_db)
+{
+    return get_lca(taxon_ids, taxon_ids, slimm_db);
+}
+
+uint32_t get_lca(std::vector<uint32_t> const & taxon_ids, slimm_database const & slimm_db)
+{
+    std::set<uint32_t> s(taxon_ids.begin(), taxon_ids.end());
+    if (s.size() == 1)
+        return taxon_ids[0];
+    else
+        return get_lca(s, s, slimm_db);
+}
+
 
 // try to open sam file
 inline bool read_bam_file(BamFileIn & bam_file, BamHeader & bam_header, std::string const & bam_file_path)
@@ -479,12 +524,12 @@ inline uint32_t get_bin_width_from_sample(BamFileIn & bam_file)
     return totlaLength/count;
 }
 
-inline uint32_t get_taxon_id_pos(CharString const & reference_name)
+inline uint32_t get_taxon_id_pos(CharString const & accession)
 {
     uint32_t taxon_id_pos = 0;
-    if (!get_taxon_id(taxon_id_pos, reference_name, "ti"))
+    if (!get_taxon_id(taxon_id_pos, accession, "ti"))
     {
-        if (!get_taxon_id(taxon_id_pos, reference_name, "kraken:taxid"))
+        if (!get_taxon_id(taxon_id_pos, accession, "kraken:taxid"))
         {
             std::cerr<<"Unable to find a way to resolve taxon id associated with references.\n"
             <<"Make sure you used a set of references provided with SLIMM\n"
