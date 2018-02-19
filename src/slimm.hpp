@@ -408,9 +408,16 @@ inline void slimm::get_profiles()
         for (uint32_t i=0; i < references_count; ++i)
         {
             std::string accession(toCString(contig_names[i]));
-            reference_contig current_ref(accession, db.ac__taxid[accession][0], refLengths[i], options.bin_width);
+            uint32_t taxa_id = 0;
+            auto ac_pos = db.ac__taxid.find(accession);
+            if(ac_pos != db.ac__taxid.end())
+            {
+                taxa_id = ac_pos->second[0];
+            }
+
+            reference_contig current_ref(accession, taxa_id, refLengths[i], options.bin_width);
             references[i] = current_ref;
-            matched_taxa.push_back(db.ac__taxid[accession][0]);
+            matched_taxa.push_back(taxa_id);
         }
         std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
