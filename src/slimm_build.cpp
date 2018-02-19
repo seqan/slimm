@@ -220,8 +220,8 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
 // --------------------------------------------------------------------------
 inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const & options)
 {
-    std::unordered_map<uint32_t, std::pair<uint32_t, taxa_ranks> > taxid__parent;
-    std::unordered_map<uint32_t, std::string>                      taxid__name;
+    std::unordered_map<uint32_t, std::tuple<uint32_t, taxa_ranks> > taxid__parent;
+    std::unordered_map<uint32_t, std::string>                       taxid__name;
 
     std::ifstream taxid__parent_stream(options.nodes_path);
     std::ifstream taxid__name_stream(options.names_path);
@@ -272,7 +272,7 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
                 ac__taxid_it->second[current_rank] = tid;
                 slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
             }
-            tid = taxid__parent[tid].first;
+            tid = std::get<1>(taxid__parent[tid]);
         }
     }
 }
