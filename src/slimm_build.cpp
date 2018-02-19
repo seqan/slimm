@@ -269,7 +269,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
 inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const & options)
 {
     std::cerr <<"[MSG] getting taxonomic linages ...\n";
-    std::unordered_map<uint32_t, std::tuple<uint32_t, taxa_ranks> > taxid__parent;
+    std::unordered_map<uint32_t, std::tuple<taxa_ranks, uint32_t> > taxid__parent;
     std::unordered_map<uint32_t, std::string>                       taxid__name;
 
     std::ifstream taxid__parent_stream(options.nodes_path);
@@ -288,7 +288,7 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
         std::getline(linestream, ignore, '\t'); //skip |
         std::getline(linestream, ignore, '\t'); //skip |
         std::getline(linestream, rank, '\t'); //fifth column is rank
-        taxid__parent[taxid] = std::make_tuple(parent_taxid, to_taxa_ranks(rank));
+        taxid__parent[taxid] = std::make_tuple(to_taxa_ranks(rank), parent_taxid);
     }
     taxid__parent_stream.close();
 
@@ -315,13 +315,17 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
 
         while (tid != 1)
         {
-            taxa_ranks current_rank = std::get<1>(taxid__parent[tid]);
+            taxa_ranks current_rank = std::get<0>(taxid__parent[tid]);
             if (current_rank >= species_lv && current_rank <= superkingdom_lv)
             {
                 ac__taxid_it->second[current_rank] = tid;
                 slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
             }
-            tid = std::get<0>(taxid__parent[tid]);
+            auto tid_pos = taxid__parent.find(tid);
+            if(tid_pos == taxid__parent.end())
+                break;
+            else
+                tid = std::get<1>(taxid__parent[tid]);
         }
     }
 }
