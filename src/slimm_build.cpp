@@ -156,6 +156,7 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
 // --------------------------------------------------------------------------
 inline void get_accession_numbers(std::set<std::string> & accessions, arg_options const & options)
 {
+    std::cerr <<"[MSG] getting accessions numbers from fasta file ...\n";
     std::string id;
     IupacString seq;
 
@@ -259,8 +260,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
     {
         std::cerr << *ac_it << ", ";
     }
-    std::cerr <<"\nTry either updating your ACCESSION2TAXAID MAP FILES or \n";
-    std::cerr <<"\n adding the dead ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
+    std::cerr <<"\nTry including the dead ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
 }
 
 // --------------------------------------------------------------------------
@@ -268,7 +268,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
 // --------------------------------------------------------------------------
 inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const & options)
 {
-    std::cerr <<"[MSG] getting taxonomic linages ...\n";
+    std::cerr <<"[MSG] loading nodes and names mappings ...\n";
     std::unordered_map<uint32_t, std::tuple<taxa_ranks, uint32_t> > taxid__parent;
     std::unordered_map<uint32_t, std::string>                       taxid__name;
 
@@ -307,7 +307,7 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
     }
     taxid__name_stream.close();
 
-    std::cerr <<"[MSG] resolving names ...\n";
+    std::cerr <<"[MSG] getting taxonomic linages and resolving names ...\n";
     for(auto ac__taxid_it=slimm_db.ac__taxid.begin(); ac__taxid_it != slimm_db.ac__taxid.end(); ++ac__taxid_it)
     {
         uint32_t tid = ac__taxid_it->second[0];
@@ -315,17 +315,19 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
 
         while (tid != 1)
         {
-            taxa_ranks current_rank = std::get<0>(taxid__parent[tid]);
-            if (current_rank >= species_lv && current_rank <= superkingdom_lv)
-            {
-                ac__taxid_it->second[current_rank] = tid;
-                slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
-            }
             auto tid_pos = taxid__parent.find(tid);
             if(tid_pos == taxid__parent.end())
                 break;
-            else
-                tid = std::get<1>(taxid__parent[tid]);
+
+            taxa_ranks current_rank = std::get<0>(tid_pos->second);
+            if (current_rank >= species_lv && current_rank <= superkingdom_lv)
+            {
+                ac__taxid_it->second[current_rank] = tid;
+                auto tname_pos = slimm_db.taxid__name.find(tid);
+                if(tname_pos == slimm_db.taxid__name.end())
+                    slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
+            }
+            tid = std::get<1>(tid_pos->second);
         }
     }
 }
