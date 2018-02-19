@@ -54,26 +54,6 @@ std::string from_taxa_ranks(const taxa_ranks &rnk)
     else                              return "intermidiate";
 }
 
-// ----------------------------------------------------------------------------
-// Class arg_options
-// ----------------------------------------------------------------------------
-struct arg_options
-{
-    uint32_t                     batch;
-    std::string                  fasta_path;
-    std::string                  nodes_path;
-    std::string                  names_path;
-    std::string                  output_path;
-    std::vector<std::string>     ac__taxid_paths;
-
-    arg_options() : batch(1000000),
-    fasta_path(),
-    nodes_path(),
-    names_path(),
-    output_path("slimm_db.sldb"),
-    ac__taxid_paths() {}
-};
-
 struct slimm_database
 {
 public:

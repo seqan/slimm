@@ -54,6 +54,27 @@
 
 using namespace seqan;
 
+// ----------------------------------------------------------------------------
+// Class arg_options
+// ----------------------------------------------------------------------------
+struct arg_options
+{
+    uint32_t                     batch;
+    bool                         verbose;
+    std::string                  fasta_path;
+    std::string                  nodes_path;
+    std::string                  names_path;
+    std::string                  output_path;
+    std::vector<std::string>     ac__taxid_paths;
+
+    arg_options() : batch(1000000),
+                    verbose(false),
+                    fasta_path(),
+                    nodes_path(),
+                    names_path(),
+                    output_path("slimm_db.sldb"),
+                    ac__taxid_paths() {}
+};
 
 // ----------------------------------------------------------------------------
 // Function setupArgumentParser()
@@ -75,7 +96,7 @@ void setupArgumentParser(ArgumentParser & parser, arg_options const & options)
     setHelpText(parser, 0, "A multi-fasta file used as a reference for mapping");
 
     addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "ACCESSION2TAXAID MAP FILES", true));
-    setHelpText(parser, 1, "one ore more accession to taxa id mapping files dowloaded from ncbi separated by space");
+    setHelpText(parser, 1, "one ore more accession to taxa id mapping files dowloaded from ncbi (separated by space.)");
 
     // The output file argument.
     addOption(parser, ArgParseOption("o", "output-file", "The path to the output file (default slimm_db.sldb)",
@@ -86,12 +107,16 @@ void setupArgumentParser(ArgumentParser & parser, arg_options const & options)
     addOption(parser, ArgParseOption("nm", "names", "NCBI's names.dmp file which contains the mapping of taxaid to name",
                              ArgParseArgument::INPUT_FILE));
     setRequired(parser, "names");
-    addOption(parser, ArgParseOption("nd", "nodes", "NCBI's nodes.dmp file which contains the mapping of taxaid to name",
+
+    addOption(parser, ArgParseOption("nd", "nodes", "NCBI's nodes.dmp file which contains the taxonomic tree.",
                              ArgParseArgument::INPUT_FILE));
     setRequired(parser, "nodes");
+
     addOption(parser, ArgParseOption("b", "batch", "maximum number of mapping to load to memory. (default=1000000)",
                              ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "batch", options.batch);
+
+    addOption(parser, ArgParseOption("v", "verbose", "Enable verbose output."));
 }
 
 // --------------------------------------------------------------------------
@@ -119,6 +144,8 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
         getOptionValue(options.output_path, parser, "output-file");
     if (isSet(parser, "batch"))
         getOptionValue(options.batch, parser, "batch");
+    if (isSet(parser, "verbose"))
+        getOptionValue(options.verbose, parser, "verbose");
 
     return ArgumentParser::PARSE_OK;
 }
@@ -156,7 +183,7 @@ inline bool get_batch_mappings_ac__taxid(std::unordered_map<std::string, uint32_
                                          uint32_t const batch_size)
 {
     ac__taxid_map.clear();
-    uint32_t taxid, lines_count = 0;
+    uint32_t taxid = 0, lines_count = 0;
     std::string ac, line;
 
     while(std::getline(ac__taxid_stream, line))
@@ -179,6 +206,9 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
                                      std::set<std::string> & accessions,
                                      arg_options const & options)
 {
+    std::cerr <<"[MSG] mapping accessions to taxaid ...\n";
+    uint32_t accessions_count = accessions.size();
+    uint32_t map_file_number  = 1;
     // iterate over multiple files
     for(std::string map_path : options.ac__taxid_paths)
     {
@@ -188,10 +218,18 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
         std::ifstream ac__taxid_stream(map_path);
 
         // iterate over a batch of mappings: for memory sake
+        uint32_t iter_number  = 1;
         while(get_batch_mappings_ac__taxid(ac__taxid_map, ac__taxid_stream, options.batch))
         {
             if (accessions.size() == 0) // if all accesions are accounted for
                 return;
+            if (options.verbose)
+            {
+                std::cerr << "[VERBOSE MSG] mapping file: ["<< map_file_number <<"/"<< options.ac__taxid_paths.size() << "]\t\t";
+                std::cerr << "iter: [" << iter_number << "]\t";
+                std::cerr << "accessions left: ["<< accessions.size() << "/" << accessions_count <<"]\n";
+                ++iter_number;
+            }
             // iterate over the remaining accessions to get
             for(auto ac_it=accessions.begin(); ac_it != accessions.end();)
             {
@@ -212,7 +250,17 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
             }
         }
         ac__taxid_stream.close();
+        ++map_file_number;
     }
+
+    // some accessions are still not mapped
+    std::cerr <<"[WARNING!] The following accessions were not mapped to taxaid.\n";
+    for(auto ac_it=accessions.begin(); ac_it != accessions.end(); ++ac_it)
+    {
+        std::cerr << *ac_it << ", ";
+    }
+    std::cerr <<"\nTry either updating your ACCESSION2TAXAID MAP FILES or \n";
+    std::cerr <<"\n adding the dead ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
 }
 
 // --------------------------------------------------------------------------
@@ -220,6 +268,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
 // --------------------------------------------------------------------------
 inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const & options)
 {
+    std::cerr <<"[MSG] getting taxonomic linages ...\n";
     std::unordered_map<uint32_t, std::tuple<uint32_t, taxa_ranks> > taxid__parent;
     std::unordered_map<uint32_t, std::string>                       taxid__name;
 
@@ -258,7 +307,7 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
     }
     taxid__name_stream.close();
 
-
+    std::cerr <<"[MSG] resolving names ...\n";
     for(auto ac__taxid_it=slimm_db.ac__taxid.begin(); ac__taxid_it != slimm_db.ac__taxid.end(); ++ac__taxid_it)
     {
         uint32_t tid = ac__taxid_it->second[0];
@@ -300,30 +349,29 @@ int main(int argc, char const ** argv)
     get_accession_numbers(accessions, options);
 
     slimm_database slimm_db;
-
     // get the taxid from accession numbers
     get_taxid_from_accession(slimm_db, accessions, options);
     fill_name_taxid_linage(slimm_db, options);
     save_slimm_database(slimm_db, options.output_path);
 
-    slimm_database slimm_db2;
-    load_slimm_database(slimm_db2, options.output_path);
-
-    std::vector<uint32_t> tids = slimm_db.ac__taxid["NC_004578.1"];
-    std::cout << "ACC: NC_004578.1 \t taxa id: " << tids[0] << "\n";
-    for (uint32_t i=1; i<tids.size(); ++i)
-    {
-        std::string r = from_taxa_ranks(static_cast<taxa_ranks>(i));
-        std::cout << r << "\t" << "\t" << std::get<0>(slimm_db.taxid__name[tids[i]]) << ":" << std::get<1>(slimm_db.taxid__name[tids[i]])  << "\n";
-    }
-
-    tids = slimm_db2.ac__taxid["NC_004578.1"];
-    std::cout << "ACC: NC_004578.1 \t taxa id: " << tids[0] << "\n";
-    for (uint32_t i=1; i<tids.size(); ++i)
-    {
-        std::string r = from_taxa_ranks(static_cast<taxa_ranks>(i));
-        std::cout << r << "\t" << "\t" << std::get<0>(slimm_db2.taxid__name[tids[i]]) << ":" << std::get<1>(slimm_db2.taxid__name[tids[i]])  << "\n";
-    }
+//    slimm_database slimm_db2;
+//    load_slimm_database(slimm_db2, options.output_path);
+//
+//    std::vector<uint32_t> tids = slimm_db.ac__taxid["NC_004578.1"];
+//    std::cout << "ACC: NC_004578.1 \t taxa id: " << tids[0] << "\n";
+//    for (uint32_t i=1; i<tids.size(); ++i)
+//    {
+//        std::string r = from_taxa_ranks(static_cast<taxa_ranks>(i));
+//        std::cout << r << "\t" << "\t" << std::get<0>(slimm_db.taxid__name[tids[i]]) << ":" << std::get<1>(slimm_db.taxid__name[tids[i]])  << "\n";
+//    }
+//
+//    tids = slimm_db2.ac__taxid["NC_004578.1"];
+//    std::cout << "ACC: NC_004578.1 \t taxa id: " << tids[0] << "\n";
+//    for (uint32_t i=1; i<tids.size(); ++i)
+//    {
+//        std::string r = from_taxa_ranks(static_cast<taxa_ranks>(i));
+//        std::cout << r << "\t" << "\t" << std::get<0>(slimm_db2.taxid__name[tids[i]]) << ":" << std::get<1>(slimm_db2.taxid__name[tids[i]])  << "\n";
+//    }
 
     return 0;
 }
