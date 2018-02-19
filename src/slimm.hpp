@@ -134,15 +134,15 @@ public:
     inline float    expected_coverage() const;
     inline void     filter_alignments();
     inline void     get_profiles();
-    inline void     get_reads_lca_count(TNodes const & nodes);
+    inline void     get_reads_lca_count();
     inline uint32_t min_reads();
     inline uint32_t min_uniq_reads();
     inline void     print_filter_stat();
     inline void     print_matches_stat();
     inline float    uniq_coverage_cut_off();
     inline void     write_raw_output_file();
-    inline void     write_output_files(TNodes & nodes);
-    inline void     write_output_files(TNodes & nodes, uint32_t const & read_count_at_rank, std::string const & rank);
+    inline void     write_output_files();
+    inline void     write_output_files(uint32_t const & read_count_at_rank, std::string const & rank);
     inline void     write_to_file(std::string & filePath, std::vector<reference_contig> & refList);
 
 private:
@@ -443,27 +443,28 @@ inline void slimm::get_profiles()
             }
 
             std::cerr<<"Assigning reads to Least Common Ancestor (LCA) ... ";
-            get_reads_lca_count(nodes);
+            get_reads_lca_count();
             std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
             std::cerr<<"Writing taxnomic profile(s) ...................... ";
-            write_output_files(nodes);
+            write_output_files();
             if (options.verbose)
                 std::cerr<<"\n.................................................. ";
             std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
 
         }
+
         else
         {
             std::cerr << "[WARNING] No mapped reads found in BAM file!" << std::endl;
         }
         
-        std::cerr<<"File took " << stop_watch.elapsed() <<" secs to process.\n";
+        std::cerr<<"[Done!] File took " << stop_watch.elapsed() <<" secs to process.\n";
     }
 }
 
-inline void slimm::get_reads_lca_count(TNodes const & nodes)
+inline void slimm::get_reads_lca_count()
 {
     // put the non-unique read to upper taxa.
     for (auto it= reads.begin(); it != reads.end(); ++it)
@@ -627,8 +628,7 @@ float slimm::uniq_coverage_cut_off()
     return _uniq_coverage_cut_off;
 }
 
-inline void slimm::write_output_files(TNodes & nodes,
-                                      uint32_t const & read_count_at_rank,
+inline void slimm::write_output_files(uint32_t const & read_count_at_rank,
                                       std::string const & rank)
 {
 
@@ -693,7 +693,7 @@ inline void slimm::write_output_files(TNodes & nodes,
     }
 }
 
-inline void slimm::write_output_files(TNodes & nodes)
+inline void slimm::write_output_files()
 {
     std::vector<std::string> const all_ranks= {"species", "genus", "family", "order", "class", "phylum", "superkingdom"};
     std::vector<std::string> considered_ranks = {options.rank};
@@ -722,7 +722,7 @@ inline void slimm::write_output_files(TNodes & nodes)
 
     for (std::string rank : considered_ranks)
     {
-        write_output_files(nodes, read_count_at_rank[rank], rank);
+        write_output_files(read_count_at_rank[rank], rank);
     }
 }
 
