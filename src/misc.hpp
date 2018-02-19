@@ -1,6 +1,7 @@
 using namespace seqan;
 
 typedef std::unordered_map <uint32_t, std::pair<uint32_t, std::string> > TNodes;
+uint32_t const LINAGE_LENGTH = 8;
 
 #include <string>
 #include <iostream>
@@ -8,6 +9,92 @@ typedef std::unordered_map <uint32_t, std::pair<uint32_t, std::string> > TNodes;
 #include <fstream>
 #include <map>
 #include <utility>
+
+// ==========================================================================
+// Classes
+// ==========================================================================
+
+enum taxa_ranks
+{
+    strain_lv         = 0,
+    species_lv        = 1,
+    genus_lv          = 2,
+    family_lv         = 3,
+    order_lv          = 4,
+    class_lv          = 5,
+    phylum_lv         = 6,
+    superkingdom_lv   = 7,
+    intermidiate_lv   = 8
+};
+
+taxa_ranks to_taxa_ranks(const std::string &str)
+{
+    if       (str == "strain")       return strain_lv;
+    else if  (str == "species")      return species_lv;
+    else if  (str == "genus")        return genus_lv;
+    else if  (str == "family")       return family_lv;
+    else if  (str == "order")        return order_lv;
+    else if  (str == "class")        return class_lv;
+    else if  (str == "phylum")       return phylum_lv;
+    else if  (str == "superkingdom") return superkingdom_lv;
+    else                             return intermidiate_lv;
+}
+
+
+std::string from_taxa_ranks(const taxa_ranks &rnk)
+{
+    if       (rnk == strain_lv)       return "strain";
+    else if  (rnk == species_lv)      return "species";
+    else if  (rnk == genus_lv)        return "genus";
+    else if  (rnk == family_lv)       return "family";
+    else if  (rnk == order_lv)        return "order";
+    else if  (rnk == class_lv)        return "class";
+    else if  (rnk == phylum_lv)       return "phylum";
+    else if  (rnk == superkingdom_lv) return "superkingdom";
+    else                              return "intermidiate";
+}
+
+// ----------------------------------------------------------------------------
+// Class arg_options
+// ----------------------------------------------------------------------------
+struct arg_options
+{
+    uint32_t                     batch;
+    std::string                  fasta_path;
+    std::string                  nodes_path;
+    std::string                  names_path;
+    std::string                  output_path;
+    std::vector<std::string>     ac__taxid_paths;
+
+    arg_options() : batch(1000000),
+    fasta_path(),
+    nodes_path(),
+    names_path(),
+    output_path("slimm_db.sldb"),
+    ac__taxid_paths() {}
+};
+
+struct slimm_database
+{
+public:
+    std::unordered_map<std::string, std::vector<uint32_t> >             ac__taxid;
+    std::unordered_map<uint32_t, std::tuple<taxa_ranks, std::string> >  taxid__name;
+
+    template <class Archive>
+    void save( Archive & ar ) const
+    {
+        ar(ac__taxid);
+        ar(taxid__name);
+    }
+
+    template <class Archive>
+    void load( Archive & ar )
+    {
+        ar(ac__taxid);
+        ar(taxid__name);
+    }
+
+};
 
 template <typename TTarget, typename TString, typename TKey = uint32_t, typename TValue = uint32_t>
 TTarget load_node_maps_2(TString const & filePath)
@@ -67,6 +154,28 @@ TNodes load_node_maps(std::string const & filePath)
 // ==========================================================================
 // Functions
 // ==========================================================================
+
+// --------------------------------------------------------------------------
+// Function save_slimm_database()
+// --------------------------------------------------------------------------
+inline void save_slimm_database(slimm_database const & slimm_db, std::string const & output_path)
+{
+    std::ofstream os(output_path, std::ios::binary);
+    cereal::BinaryOutputArchive out_archive( os );
+    out_archive(slimm_db);
+    os.close();
+}
+
+// --------------------------------------------------------------------------
+// Function load_slimm_database()
+// --------------------------------------------------------------------------
+inline void load_slimm_database(slimm_database & slimm_db, std::string const & input_path)
+{
+    std::ifstream is(input_path, std::ios::binary);
+    cereal::BinaryInputArchive in_archive(is);
+    in_archive(slimm_db);
+    is.close();
+}
 
 template <typename Type>
 Type get_quantile_cut_off (std::vector<Type> v, float q)

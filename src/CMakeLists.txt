@@ -150,6 +150,7 @@ endif ()
 set (SEQAN_DEFINITIONS ${SEQAN_DEFINITIONS} -DSEQAN_GLOBAL_EXCEPTION_HANDLER=1)
 
 # Add include directories.
+include_directories (${CEREAL_INCLUDE_DIRS})
 include_directories (${SEQAN_INCLUDE_DIRS})
 
 # Add definitions set by find_package (SeqAn).
@@ -173,8 +174,12 @@ add_executable(slimm    slimm.cpp
                         reference_contig.hpp
                         misc.hpp)
 
+add_executable(slimm_build  slimm_build.cpp
+                            misc.hpp)
+
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (slimm ${SEQAN_LIBRARIES})
+target_link_libraries (slimm_build ${SEQAN_LIBRARIES})
 
 
 set(BUILD_SHARED_LIBS OFF)
@@ -185,6 +190,8 @@ set(BUILD_SHARED_LIBS OFF)
 
 # Install slimm in ${PREFIX}/bin directory
 install (TARGETS slimm
+         DESTINATION bin)
+install (TARGETS slimm_build
          DESTINATION bin)
 
 # Install non-binary files for the package to "." for app builds and
