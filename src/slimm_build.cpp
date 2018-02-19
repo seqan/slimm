@@ -266,13 +266,13 @@ inline void fill_name_taxid_linage(slimm_database & slimm_db, arg_options const 
 
         while (tid != 1)
         {
-            taxa_ranks current_rank = taxid__parent[tid].second;
+            taxa_ranks current_rank = std::get<1>(taxid__parent[tid]);
             if (current_rank >= species_lv && current_rank <= superkingdom_lv)
             {
                 ac__taxid_it->second[current_rank] = tid;
                 slimm_db.taxid__name[tid] = std::make_tuple(current_rank, taxid__name[tid]);
             }
-            tid = std::get<1>(taxid__parent[tid]);
+            tid = std::get<0>(taxid__parent[tid]);
         }
     }
 }
