@@ -734,7 +734,7 @@ inline void slimm::write_abundance()
         abundunce_stream.close();
         if (options.verbose)
         {
-            std::cerr << "\n" << std::setw (15) << from_taxa_ranks(rank) <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
+            std::cerr << "\n" << std::setw (4) << count << std::setw (15) << from_taxa_ranks(rank) <<" ("<< faild_count <<" bellow cutoff i.e. "<< 0.001 <<")";
         }
     }
 }
