@@ -142,7 +142,7 @@ public:
     inline float    uniq_coverage_cut_off();
     inline void     write_raw_stat();
     inline void     write_abundance();
-    inline uint32_t get_lca2(std::set<uint32_t> const & ref_ids);
+    inline uint32_t get_lca(std::set<uint32_t> const & ref_ids);
 
 private:
 
@@ -468,7 +468,7 @@ inline void slimm::get_considered_ranks()
     }
 }
 
-inline uint32_t slimm::get_lca2(std::set<uint32_t> const & ref_ids)
+inline uint32_t slimm::get_lca(std::set<uint32_t> const & ref_ids)
 {
     uint32_t taxa_id = 1;
     for (uint32_t i=0; i<LINAGE_LENGTH; ++i)
@@ -502,7 +502,7 @@ inline void slimm::get_reads_lca_count()
                 uint32_t ref_id = (it->second.targets[i]).reference_id;
                 ref_ids.insert(ref_id);
             }
-            lca_taxa_id = get_lca2(ref_ids);
+            lca_taxa_id = get_lca(ref_ids);
             auto tid_pos = taxon_id__read_count.find(lca_taxa_id);
             // If taxon_id already exists increment it
             if(tid_pos != taxon_id__read_count.end())
@@ -771,18 +771,11 @@ inline void slimm::write_raw_stat()
     for (uint32_t i=0; i < length(references); ++i)
     {
         reference_contig current_ref = references[i];
-        uint32_t taxa_id = 0;
-        auto ac_pos = db.ac__taxid.find(current_ref.accession);
-        if(ac_pos != db.ac__taxid.end())
-        {
-            taxa_id = ac_pos->second[0];
-        }
-
-        std::string candidate_name = std::get<1>(db.taxid__name[taxa_id]);
+        std::string candidate_name = std::get<1>(db.taxid__name[current_ref.taxa_id]);
         if (candidate_name == "")
             candidate_name = "no_name_found";
         features_file   << current_ref.accession << "\t"
-                        << taxa_id << "\t"
+                        << current_ref.taxa_id << "\t"
                         << candidate_name << "\t"
                         << current_ref.reads_count << "\t"
                         << current_ref.abundance << "\t"
