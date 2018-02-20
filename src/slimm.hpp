@@ -100,7 +100,7 @@ public:
 
     uint32_t                    current_file_index        = 0;
     uint32_t                    number_of_files           = 0;
-    uint16_t                    avg_read_length           = 0;
+    uint32_t                    avg_read_length           = 0;
     uint32_t                    matched_ref_length        = 0;
     uint32_t                    reference_count           = 0;
     uint32_t                    failed_by_min_read        = 0;
@@ -121,7 +121,6 @@ public:
     std::vector<taxa_ranks>                             considered_ranks;
     std::vector<reference_contig>                       references;
     std::unordered_map<uint32_t, float>                 taxon_id__abundance;
-//    std::unordered_map <uint32_t, std::string>          taxon_id__name;
     std::unordered_map<std::string, read_stat>          reads;
     std::unordered_map<uint32_t, uint32_t>              taxon_id__read_count;
     std::unordered_map<uint32_t, std::set<uint32_t> >   taxon_id__children;
@@ -162,7 +161,6 @@ private:
 
 inline void slimm::analyze_alignments(BamFileIn & bam_file)
 {
-    uint32_t query_len = 0;
     BamAlignmentRecord record;
     while (!atEnd(bam_file))
     {
@@ -170,9 +168,7 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
         if (hasFlagUnmapped(record) || record.rID == BamAlignmentRecord::INVALID_REFID)
             continue;  // Skip these records.
 
-        uint32_t new_query_len = length(record.seq);
-        query_len = (new_query_len == 0) ? query_len : new_query_len;
-        uint32_t center_position =  std::min(record.beginPos + (query_len/2), references[record.rID].length);
+        uint32_t center_position =  std::min(record.beginPos + (avg_read_length/2), references[record.rID].length);
         uint32_t relative_bin_no = center_position/options.bin_width;
 
         // maintain read properties under slimm.reads
@@ -184,7 +180,6 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
         
         // if there is no read with read_name this will create one.
         reads[read_name].add_target(record.rID, relative_bin_no);
-        reads[read_name].len = query_len;
         ++hits_count;
     }
 
@@ -192,10 +187,8 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
     if (hits_count == 0)
         return;
 
-    uint32_t query_length_sum = 0;
     for (auto it= reads.begin(); it != reads.end(); ++it)
     {
-        query_length_sum += it->second.len;
         if(it->second.is_uniq(matched_taxa))
         {
             uint32_t reference_id = it->second.targets[0].reference_id;
@@ -234,7 +227,6 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
     }
     matches_count = reads.size();
 
-    avg_read_length = query_length_sum/matches_count;
     float totalAb = 0.0;
     for (uint32_t i=0; i<length(references); ++i)
     {
@@ -384,9 +376,12 @@ inline void slimm::get_profiles()
 
     if (read_bam_file(bam_file, bam_header, current_bam_file_path()))
     {
+        //get average read length from a sample (size = 100K)
+        avg_read_length = get_avg_read_length(bam_file, 100000);
+
         //if bin_width is not given use avg read length
         if (options.bin_width == 0) 
-            options.bin_width = get_bin_width_from_sample(bam_file);
+            options.bin_width = avg_read_length;
 
         //reset the bam_file to the first recored by closing and reopening
         close(bam_file);
@@ -492,42 +487,47 @@ inline void slimm::get_reads_lca_count()
                 ref_ids.insert(ref_id);
             }
             lca_taxa_id = get_lca(taxon_ids, db);
-            taxon_id__children[lca_taxa_id].insert(ref_ids.begin(), ref_ids.end());
-            // If taxon_id already exists
-            if (taxon_id__read_count.count(lca_taxa_id) == 1)
-                ++taxon_id__read_count[lca_taxa_id];
-            else   // first time for taxon_id
+            auto tid_pos = taxon_id__read_count.find(lca_taxa_id);
+            // If taxon_id already exists increment it
+            if(tid_pos != taxon_id__read_count.end())
+                tid_pos->second += 1;
+            else
                 taxon_id__read_count[lca_taxa_id] = 1;
             //add the contributing children references to the taxa
+            taxon_id__children[lca_taxa_id].insert(ref_ids.begin(), ref_ids.end());
         }
     }
 
-
-    //add the sum of read counts of children to all ancestors of the LCA
+    //add the sum of read counts of children to all ancestors of the LCA // but get a copy first
     std::unordered_map <uint32_t, uint32_t> taxon_id__read_count_cp = taxon_id__read_count;
-    uint32_t contributer_taxa_id = 0,  reciever_taxa_id = 0, read_count = 0, uniqCount = 0;
-    for(auto ac__taxid_it=db.ac__taxid.begin(); ac__taxid_it != db.ac__taxid.end(); ++ac__taxid_it)
+    uint32_t reciever_taxa_id = 0;
+    for (auto t_id : taxon_id__read_count_cp)
     {
-        for (uint32_t i=0; i<LINAGE_LENGTH-1; ++i)
+        // get the rank of the taxid
+        taxa_ranks rnk = std::get<0>(db.taxid__name[t_id.first]);
+
+        //get the first child and then the linage
+        std::string first_child_acc = "";
+        for (auto child : taxon_id__children.at(t_id.first))
         {
-            contributer_taxa_id = ac__taxid_it->second[i];
-            if (taxon_id__read_count_cp.find(contributer_taxa_id) != taxon_id__read_count_cp.end())
-            {
-                std::set<uint32_t> ref_ids = taxon_id__children[contributer_taxa_id];
-                read_count = taxon_id__read_count_cp[contributer_taxa_id];
-                for (uint32_t j=i+1; i<LINAGE_LENGTH; ++i)
-                {
-                    reciever_taxa_id = ac__taxid_it->second[j];
-                    if (taxon_id__read_count.count(reciever_taxa_id) >= 1)
-                        taxon_id__read_count[reciever_taxa_id] += read_count;
-                    else
-                        taxon_id__read_count[reciever_taxa_id] = read_count;
-                    //add the contributing children references to the taxa
-                    taxon_id__children[reciever_taxa_id].insert(ref_ids.begin(), ref_ids.end());
-                }
+            first_child_acc = references[child].accession;
+            break;
+        }
+        std::vector<uint32_t> linage = db.ac__taxid[first_child_acc];
+        std::set<uint32_t> ref_ids = taxon_id__children[t_id.first];
 
-            }
-
+        // add the read count to the uper ranks along the linage
+        for (uint32_t j=rnk+1; j < LINAGE_LENGTH; ++j)
+        {
+            reciever_taxa_id = linage[j];
+            auto tid_pos = taxon_id__read_count.find(reciever_taxa_id);
+            // If taxon_id already exists increment it
+            if(tid_pos != taxon_id__read_count.end())
+                tid_pos->second += t_id.second;
+            else
+                taxon_id__read_count[reciever_taxa_id] = t_id.second;
+            //add the contributing children references to the taxa
+            taxon_id__children[reciever_taxa_id].insert(ref_ids.begin(), ref_ids.end());
         }
     }
 
@@ -537,15 +537,17 @@ inline void slimm::get_reads_lca_count()
         if (references[i].uniq_reads_count2 > 0)
         {
             std::vector<uint32_t> linage = db.ac__taxid[references[i].accession];
-            uniqCount = references[i].uniq_reads_count2;
             std::set<uint32_t> ref_ids = taxon_id__children[linage[0]];
             for (uint32_t j=1; j<LINAGE_LENGTH; ++j)
             {
                 reciever_taxa_id = linage[j];
-                if (taxon_id__read_count.count(reciever_taxa_id) >= 1)
-                    taxon_id__read_count[reciever_taxa_id] += uniqCount;
+                auto tid_pos = taxon_id__read_count.find(reciever_taxa_id);
+                // If taxon_id already exists increment it
+                if(tid_pos != taxon_id__read_count.end())
+                    tid_pos->second += references[i].uniq_reads_count2;
                 else
-                    taxon_id__read_count[reciever_taxa_id] = uniqCount;
+                    taxon_id__read_count[reciever_taxa_id] = references[i].uniq_reads_count2;
+
                 //add the contributing children references to the taxa
                 taxon_id__children[reciever_taxa_id].insert(i);
                 taxon_id__children[reciever_taxa_id].insert(ref_ids.begin(), ref_ids.end());
@@ -715,7 +717,7 @@ inline void slimm::write_abundance()
                 std::string linage_str = "";
                 for (uint32_t i=LINAGE_LENGTH-1; i > rank; --i)
                 {
-                    linage_str += " >";
+                    linage_str += ">";
                     linage_str += std::get<1>(db.taxid__name[linage[i]]);
                 }
 

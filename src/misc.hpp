@@ -511,13 +511,15 @@ inline bool read_bam_file(BamFileIn & bam_file, BamHeader & bam_header, std::str
     return true;
 }
 
-inline uint32_t get_bin_width_from_sample(BamFileIn & bam_file)
+inline uint32_t get_avg_read_length(BamFileIn & bam_file, uint32_t const sample_size)
 {
     BamAlignmentRecord record;
     uint32_t count = 0, totlaLength = 0;
-    while (!atEnd(bam_file) && count < 1000)
+    while (!atEnd(bam_file) && count < sample_size)
     {
         readRecord(record, bam_file);
+        if (length(record.seq) == 0)
+            continue;  // Skip records without sequences.
         totlaLength += length(record.seq);
         ++count;
     }

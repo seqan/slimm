@@ -67,7 +67,6 @@ class read_stat
 public:
     std::vector<target_reference>   targets;
     uint32_t                        refs_length_sum = 0;
-    uint32_t                        len = 0;
 
     //checks if all the match points are in the same sequence
     bool is_uniq()
