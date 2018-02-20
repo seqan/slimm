@@ -71,54 +71,45 @@ public:
     //checks if all the match points are in the same sequence
     bool is_uniq()
     {
-        size_t len = targets.size();
-        if (len == 0 || len == 1)
-            return len;
-        return false;
+        return (targets.size() == 1);
     }
 
     // checks if all the match points are in the same sequence
-    // ignoring sequences that are not in refList
-    bool is_uniq(std::vector<uint32_t> const & taxon_ids)
+    // ignoring sequences that are not in valid_ref_ids
+    bool is_uniq(std::set<uint32_t> const & valid_ref_ids)
     {
-        size_t len = targets.size();
-        if (len == 0 || len == 1)
-            return len;
+        if (targets.size() == 1)
+            return true;
         else
         {
-            std::set<uint32_t> ref_taxon_ids;
-            for (size_t i=0; i < len; ++i)
+            uint32_t ref_count = 0;
+            for (auto tr : targets)
             {
-                uint32_t ref_id = taxon_ids[(targets[i]).reference_id];
-                ref_taxon_ids.insert(ref_id);
-            }
-            if (ref_taxon_ids.size() > 1)
-            {
-                return false;
+                if (valid_ref_ids.find(tr.reference_id) != valid_ref_ids.end()) // if valid ref_id
+                    ++ref_count;
+                if (ref_count > 1)
+                    return false;
             }
         }
         return true;
     }
 
-    void update(std::vector<uint32_t> const & taxon_ids,
-                std::set<uint32_t> const & valid_taxon_ids,
-                std::vector<reference_contig> const & references )
+    // remove targets of masked_ref_ids
+    void update(std::set<uint32_t> const & valid_ref_ids, std::vector<reference_contig> const & references)
     {
-        size_t len = targets.size();
-        if (len == 0)
+        if (targets.size() == 0)
             return;
         else
         {
             std::vector<target_reference> new_targets;
-            for (size_t i=0; i < len; ++i)
+            for (auto tr : targets)
             {
-                uint32_t ref_id = taxon_ids[(targets[i]).reference_id];
-                if(valid_taxon_ids.find(ref_id) != valid_taxon_ids.end())
-                    new_targets.push_back(targets[i]);
+                if (valid_ref_ids.find(tr.reference_id) != valid_ref_ids.end()) // if valid ref_id
+                    new_targets.push_back(tr);
                 else
-                    refs_length_sum -= references[(targets[i]).reference_id].length;
+                    refs_length_sum -= references[tr.reference_id].length;
             }
-            targets = new_targets;
+            std::swap(targets, new_targets);
         }
     }
 

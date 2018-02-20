@@ -116,8 +116,7 @@ public:
 
 
     slimm_database                                      db;
-    std::set<uint32_t>                                  valid_ref_taxon_ids;
-    std::vector<uint32_t>                               matched_taxa;
+    std::set<uint32_t>                                  valid_ref_ids;
     std::vector<taxa_ranks>                             considered_ranks;
     std::vector<reference_contig>                       references;
     std::unordered_map<uint32_t, float>                 taxon_id__abundance;
@@ -143,6 +142,7 @@ public:
     inline float    uniq_coverage_cut_off();
     inline void     write_raw_stat();
     inline void     write_abundance();
+    inline uint32_t get_lca2(std::set<uint32_t> const & ref_ids);
 
 private:
 
@@ -189,7 +189,7 @@ inline void slimm::analyze_alignments(BamFileIn & bam_file)
 
     for (auto it= reads.begin(); it != reads.end(); ++it)
     {
-        if(it->second.is_uniq(matched_taxa))
+        if(it->second.is_uniq())
         {
             uint32_t reference_id = it->second.targets[0].reference_id;
             it->second.refs_length_sum += references[reference_id].length;
@@ -329,7 +329,7 @@ inline void slimm::filter_alignments()
         if (references[i].cov_percent() >= coverage_cut_off() &&
             references[i].uniq_cov_percent() >= uniq_coverage_cut_off() && true)
         {
-            valid_ref_taxon_ids.insert(db.ac__taxid[references[i].accession][0]);
+            valid_ref_ids.insert(i);
         }
         else
         {
@@ -350,8 +350,8 @@ inline void slimm::filter_alignments()
 
     for (auto it= reads.begin(); it != reads.end(); ++it)
     {
-        it->second.update(matched_taxa, valid_ref_taxon_ids, references);
-        if(it->second.is_uniq(matched_taxa))
+        it->second.update(valid_ref_ids, references);
+        if(it->second.is_uniq())
         {
             uint32_t reference_id = (it->second.targets[0]).reference_id;
             references[reference_id].uniq_reads_count2 += 1;
@@ -407,10 +407,8 @@ inline void slimm::get_profiles()
             {
                 taxa_id = ac_pos->second[0];
             }
-
-            reference_contig current_ref(accession, refLengths[i], options.bin_width);
+            reference_contig current_ref(accession, taxa_id, refLengths[i], options.bin_width);
             references[i] = current_ref;
-            matched_taxa.push_back(taxa_id);
         }
         std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
@@ -469,12 +467,31 @@ inline void slimm::get_considered_ranks()
         considered_ranks.push_back(to_taxa_ranks(options.rank));
     }
 }
+
+inline uint32_t slimm::get_lca2(std::set<uint32_t> const & ref_ids)
+{
+    uint32_t taxa_id = 1;
+    for (uint32_t i=0; i<LINAGE_LENGTH; ++i)
+    {
+        std::set<uint32_t> level_taxa_set = {};
+        for(auto ref_id : ref_ids)
+        {
+            taxa_id = db.ac__taxid[references[ref_id].accession][i];
+            level_taxa_set.insert(taxa_id);
+        }
+        if(level_taxa_set.size() == 1)
+            break;
+    }
+    return taxa_id;
+}
+
 inline void slimm::get_reads_lca_count()
 {
     // put the non-unique read to upper taxa.
     for (auto it= reads.begin(); it != reads.end(); ++it)
     {
-        if(!(it->second.is_uniq(matched_taxa)))
+        size_t len = it->second.targets.size();
+        if(len > 1)
         {
             uint32_t lca_taxa_id = 0;
             std::set<uint32_t> ref_ids = {};
@@ -483,10 +500,9 @@ inline void slimm::get_reads_lca_count()
             for (size_t i=0; i < len; ++i)
             {
                 uint32_t ref_id = (it->second.targets[i]).reference_id;
-                taxon_ids.insert(matched_taxa[ref_id]);
                 ref_ids.insert(ref_id);
             }
-            lca_taxa_id = get_lca(taxon_ids, db);
+            lca_taxa_id = get_lca2(ref_ids);
             auto tid_pos = taxon_id__read_count.find(lca_taxa_id);
             // If taxon_id already exists increment it
             if(tid_pos != taxon_id__read_count.end())
@@ -558,7 +574,7 @@ inline void slimm::get_reads_lca_count()
 
 inline void slimm::print_filter_stat()
 {
-    std::cerr << "  " << length(valid_ref_taxon_ids) << " passed the threshould coverage.\n";
+    std::cerr << "  " << length(valid_ref_ids) << " passed the threshould coverage.\n";
     std::cerr << "  " << failed_byCov << " ref's couldn't pass the coverage threshould.\n";
     std::cerr << "  " << failed_byUniqCov << " ref's couldn't pass the uniq coverage threshould.\n";
     std::cerr << "  uniquily matching reads increased from " << uniq_matches_count << " to " << uniq_matches_count2 <<"\n\n";
@@ -574,25 +590,6 @@ inline void slimm::print_matches_stat()
     std::cerr << "  bins coverage cut-off = " << coverage_cut_off() << " (" << options.cov_cut_off <<" quantile)\n";
     std::cerr << "  uniq bins coverage cut-off = " << uniq_coverage_cut_off() << " (" << options.cov_cut_off <<" quantile)\n\n";
 }
-
-// load taxonomic information from slimmDB
-//inline void slimm::load_taxonomic_info()
-//{
-//    Timer<>  stop_watch;
-//    std::stringstream ss;
-//    std::ofstream sam_extract_file;
-//
-//    std::string nodes_path = options.mapping_dir + "/nodes.dmp";
-//    std::string names_path = options.mapping_dir + "/names.dmp";
-//
-//    std::cerr<<"Loading taxon_id to name mapping ................. ";
-//    taxon_id__name =  load_int__string_map(names_path);
-//    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-//
-//    std::cerr<<"Loading node mapping ............................. ";
-//    nodes = load_node_maps(nodes_path);
-//    std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
-//}
 
 uint32_t slimm::min_reads()
 {
@@ -732,12 +729,12 @@ inline void slimm::write_abundance()
         }
         float unknownAbundance = float(unknown_reads_count)/ matches_count * 100 + faild_abundunce;
 
-        abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << "-" << "\t" << "\tunknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
+        abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << "-" << "\t" << "unknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
         abundunce_stream << unknownAbundance << "\t" << unknown_reads_count << "\t" << "0" << "\n";
         abundunce_stream.close();
         if (options.verbose)
         {
-            std::cerr << "\n" << std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
+            std::cerr << "\n" << std::setw (15) << from_taxa_ranks(rank) <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
         }
     }
 }
@@ -767,8 +764,6 @@ inline void slimm::write_raw_stat()
                     "coverage_depth\t"
                     "uniq1_coverage_depth\t"
                     "uniq2_coverage_depth\t"
-
-                    "mapping_error\t"
                     "coverage(%)\t"
                     "uniq1_coverage(%)\t"
                     "uniq2_coverage(%)\n";
@@ -802,13 +797,11 @@ inline void slimm::write_raw_stat()
                         << current_ref.uniq_cov.none_zero_bin_count() << "\t"
                         << current_ref.uniq_cov2.none_zero_bin_count() << "\t"
 
-
                         << current_ref.cov_depth() << "\t"
 
                         << current_ref.uniq_cov_depth() << "\t"
                         << current_ref.uniq_cov_depth2() << "\t"
 
-                        << "NA"<< "\t"
                         << current_ref.cov_percent() << "\t"
                         << current_ref.uniq_cov_percent() << "\t"
                         << current_ref.uniq_cov_percent2() << "\n";

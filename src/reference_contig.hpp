@@ -115,6 +115,7 @@ public:
     float               uniq_abundance2;
 
     reference_contig(): accession(""),
+                        taxa_id(0),
                         is_valid(false),
                         length(0),
                         reads_count(0),
@@ -127,8 +128,9 @@ public:
                         uniq_abundance(0.0),
                         uniq_abundance2(0.0){}
 
-    reference_contig(std::string & ref_name, uint32_t ref_length, uint32_t bin_width):
+    reference_contig(std::string & ref_name, uint32_t & t_id, uint32_t & ref_length, uint32_t & bin_width):
                         accession(ref_name),
+                        taxa_id(t_id),
                         is_valid(false),
                         length(ref_length),
                         reads_count(0),
