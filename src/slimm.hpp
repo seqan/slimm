@@ -142,10 +142,8 @@ public:
     inline void     print_filter_stat();
     inline void     print_matches_stat();
     inline float    uniq_coverage_cut_off();
-    inline void     write_raw_output_file();
-    inline void     write_output_files();
-    inline void     write_output_files(uint32_t const & read_count_at_rank, taxa_ranks const & rank);
-    inline void     write_to_file(std::string & filePath, std::vector<reference_contig> & refList);
+    inline void     write_raw_stat();
+    inline void     write_abundance();
 
 private:
 
@@ -415,7 +413,7 @@ inline void slimm::get_profiles()
                 taxa_id = ac_pos->second[0];
             }
 
-            reference_contig current_ref(accession, taxa_id, refLengths[i], options.bin_width);
+            reference_contig current_ref(accession, refLengths[i], options.bin_width);
             references[i] = current_ref;
             matched_taxa.push_back(taxa_id);
         }
@@ -446,7 +444,7 @@ inline void slimm::get_profiles()
         if (options.raw_output)
         {
             std::cerr<<"Writing features to a file ....................... ";
-            write_raw_output_file();
+            write_raw_stat();
             std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
         }
 
@@ -455,7 +453,7 @@ inline void slimm::get_profiles()
         std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
 
         std::cerr<<"Writing taxnomic profile(s) ...................... ";
-        write_output_files();
+        write_abundance();
         if (options.verbose)
             std::cerr<<"\n.................................................. ";
         std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
@@ -652,77 +650,7 @@ float slimm::uniq_coverage_cut_off()
     return _uniq_coverage_cut_off;
 }
 
-inline void slimm::write_output_files(uint32_t const & read_count_at_rank, taxa_ranks  const & rank)
-{
-
-    std::string abundunce_tsv_path = get_tsv_file_name(toCString(options.output_prefix), current_bam_file_path(), from_taxa_ranks(rank));
-    std::ofstream abundunce_stream;
-    abundunce_stream.open(abundunce_tsv_path);
-
-    uint32_t unknown_reads_count = matches_count - read_count_at_rank;
-    uint32_t count = 0;
-    uint32_t faild_count = 0;
-    float faild_abundunce = 0.0;
-    std::unordered_map <uint32_t, float> clade_cov;
-    std::unordered_map <uint32_t, float> clade_abundance;
-    count = 1;
-
-    abundunce_stream << "taxa_level\ttaxa_id\tlinage\tname\tabundance\tread_count\tchildren_count\n";
-    for (auto t_id : taxon_id__read_count)
-    {
-        if (rank == std::get<0>(db.taxid__name[t_id.first]))
-        {
-            std::set<uint32_t>::iterator it;
-            uint32_t genome_Length = 0;
-            uint32_t children_count = 0;
-            std::string last_child_acc = "";
-            for (auto child : taxon_id__children.at(t_id.first))
-            {
-                genome_Length += references[child].length;
-                last_child_acc = references[child].accession;
-                ++children_count;
-            }
-            genome_Length = genome_Length/children_count;
-            float cov = float(t_id.second * avg_read_length)/genome_Length;
-
-            float abundance = float(t_id.second)/(matches_count) * 100;
-
-            if (abundance == 0.001 || cov < coverage_cut_off())
-            {
-                faild_abundunce += abundance;
-                ++faild_count;
-                continue;
-            }
-
-            std::vector<uint32_t> linage = db.ac__taxid[last_child_acc];
-            std::string linage_str = "";
-            for (uint32_t i=LINAGE_LENGTH-1; i > rank; --i)
-            {
-                linage_str += " >";
-                linage_str += std::get<1>(db.taxid__name[linage[i]]);
-            }
-
-            std::string candidate_name = std::get<1>(db.taxid__name[t_id.first]);
-            if (candidate_name == "")
-                candidate_name = "no_name_" + from_taxa_ranks(rank);
-            abundunce_stream << from_taxa_ranks(rank) << "\t" << t_id.first << "\t" << linage_str << "\t" << candidate_name << "\t";
-            abundunce_stream << abundance << "\t" << t_id.second << "\t" << children_count << "\n";
-            ++count;
-        }
-
-    }
-    float unknownAbundance = float(unknown_reads_count)/ matches_count * 100 + faild_abundunce;
-
-    abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << "-" << "\t" << "\tunknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
-    abundunce_stream << unknownAbundance << "\t" << unknown_reads_count << "\t" << "0" << "\n";
-    abundunce_stream.close();
-    if (options.verbose)
-    {
-        std::cerr << "\n" << std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
-    }
-}
-
-inline void slimm::write_output_files()
+inline void slimm::write_abundance()
 {
     // calculate the total number of reads matching uniquily at that species level.
     std::map<taxa_ranks, uint32_t>  read_count_at_rank = {  {strain_lv, 0},
@@ -744,89 +672,147 @@ inline void slimm::write_output_files()
 
     for (taxa_ranks rank : considered_ranks)
     {
-        write_output_files(read_count_at_rank[rank], rank);
+        std::string abundunce_tsv_path = get_tsv_file_name(toCString(options.output_prefix), current_bam_file_path(), from_taxa_ranks(rank));
+        std::ofstream abundunce_stream;
+        abundunce_stream.open(abundunce_tsv_path);
+
+        uint32_t unknown_reads_count = matches_count - read_count_at_rank[rank];
+        uint32_t count = 0;
+        uint32_t faild_count = 0;
+        float faild_abundunce = 0.0;
+        std::unordered_map <uint32_t, float> clade_cov;
+        std::unordered_map <uint32_t, float> clade_abundance;
+        count = 1;
+
+        abundunce_stream << "taxa_level\ttaxa_id\tlinage\tname\tabundance\tread_count\tchildren_count\n";
+        for (auto t_id : taxon_id__read_count)
+        {
+            if (rank == std::get<0>(db.taxid__name[t_id.first]))
+            {
+                std::set<uint32_t>::iterator it;
+                uint32_t genome_Length = 0;
+                uint32_t children_count = 0;
+                std::string last_child_acc = "";
+                for (auto child : taxon_id__children.at(t_id.first))
+                {
+                    genome_Length += references[child].length;
+                    last_child_acc = references[child].accession;
+                    ++children_count;
+                }
+                genome_Length = genome_Length/children_count;
+                float cov = float(t_id.second * avg_read_length)/genome_Length;
+
+                float abundance = float(t_id.second)/(matches_count) * 100;
+
+                if (abundance == 0.001 || cov < coverage_cut_off())
+                {
+                    faild_abundunce += abundance;
+                    ++faild_count;
+                    continue;
+                }
+
+                std::vector<uint32_t> linage = db.ac__taxid[last_child_acc];
+                std::string linage_str = "";
+                for (uint32_t i=LINAGE_LENGTH-1; i > rank; --i)
+                {
+                    linage_str += " >";
+                    linage_str += std::get<1>(db.taxid__name[linage[i]]);
+                }
+
+                std::string candidate_name = std::get<1>(db.taxid__name[t_id.first]);
+                if (candidate_name == "")
+                    candidate_name = "no_name_" + from_taxa_ranks(rank);
+                abundunce_stream << from_taxa_ranks(rank) << "\t" << t_id.first << "\t" << linage_str << "\t" << candidate_name << "\t";
+                abundunce_stream << abundance << "\t" << t_id.second << "\t" << children_count << "\n";
+                ++count;
+            }
+
+        }
+        float unknownAbundance = float(unknown_reads_count)/ matches_count * 100 + faild_abundunce;
+
+        abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << "-" << "\t" << "\tunknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
+        abundunce_stream << unknownAbundance << "\t" << unknown_reads_count << "\t" << "0" << "\n";
+        abundunce_stream.close();
+        if (options.verbose)
+        {
+            std::cerr << "\n" << std::setw (15) << rank <<" level: "<< faild_count <<" bellow cutoff ("<< 0.001 <<")";
+        }
     }
 }
 
-inline void slimm::write_raw_output_file()
+inline void slimm::write_raw_stat()
 {
     std::string tsv_path = get_tsv_file_name(options.output_prefix, current_bam_file_path());
-    write_to_file(tsv_path, references);
-}
-
-inline void slimm::write_to_file(std::string & filePath, std::vector<reference_contig> & refList)
-{
     std::ofstream features_file;
-    features_file.open(filePath);
+    features_file.open(tsv_path);
 
-    features_file << "No.\t"
-    "accesion\t"
-    "taxaid\t"
-    "name\t"
-    "reads_count\t"
-    "abundance\t"
-    "uniq1_abundance\t"
-    "uniq2_abundance\t"
-    "genome_length\t"
-    "uniq1_reads_count\t"
-    "uniq2_reads_count\t"
+    features_file <<"accesion\t"
+                    "taxaid\t"
+                    "name\t"
+                    "reads_count\t"
+                    "abundance\t"
+                    "uniq1_abundance\t"
+                    "uniq2_abundance\t"
+                    "genome_length\t"
+                    "uniq1_reads_count\t"
+                    "uniq2_reads_count\t"
 
-    "bins_count\t"
-    "bins_count(>0)\t"
-    "uniq1_bins_count(>0)\t"
-    "uniq2_bins_count(>0)\t"
+                    "bins_count\t"
+                    "bins_count(>0)\t"
+                    "uniq1_bins_count(>0)\t"
+                    "uniq2_bins_count(>0)\t"
 
-    "coverage_depth\t"
-    "uniq1_coverage_depth\t"
-    "uniq2_coverage_depth\t"
+                    "coverage_depth\t"
+                    "uniq1_coverage_depth\t"
+                    "uniq2_coverage_depth\t"
 
-    "mapping_error\t"
-    "coverage(%)\t"
-    "uniq1_coverage(%)\t"
-    "uniq2_coverage(%)\n";
+                    "mapping_error\t"
+                    "coverage(%)\t"
+                    "uniq1_coverage(%)\t"
+                    "uniq2_coverage(%)\n";
 
-    uint32_t current = 0;
-    uint32_t reference_count = length(refList);
-    for (uint32_t i=0; i < reference_count; ++i)
+    for (uint32_t i=0; i < length(references); ++i)
     {
-        current ++;
-        reference_contig current_ref = refList[i];
-        uint32_t taxa_id = db.ac__taxid[current_ref.accession][0];
+        reference_contig current_ref = references[i];
+        uint32_t taxa_id = 0;
+        auto ac_pos = db.ac__taxid.find(current_ref.accession);
+        if(ac_pos != db.ac__taxid.end())
+        {
+            taxa_id = ac_pos->second[0];
+        }
+
         std::string candidate_name = std::get<1>(db.taxid__name[taxa_id]);
         if (candidate_name == "")
             candidate_name = "no_name_found";
-        features_file   << current << "\t"
-        << current_ref.accession << "\t"
-        << taxa_id << "\t"
-        << candidate_name << "\t"
-        << current_ref.reads_count << "\t"
-        << current_ref.abundance << "\t"
-        << current_ref.uniq_abundance << "\t"
-        << current_ref.uniq_abundance2 << "\t"
-        << current_ref.length << "\t"
-        << current_ref.uniq_reads_count << "\t"
-        << current_ref.uniq_reads_count2 << "\t"
+        features_file   << current_ref.accession << "\t"
+                        << taxa_id << "\t"
+                        << candidate_name << "\t"
+                        << current_ref.reads_count << "\t"
+                        << current_ref.abundance << "\t"
+                        << current_ref.uniq_abundance << "\t"
+                        << current_ref.uniq_abundance2 << "\t"
+                        << current_ref.length << "\t"
+                        << current_ref.uniq_reads_count << "\t"
+                        << current_ref.uniq_reads_count2 << "\t"
 
-        << current_ref.cov.number_of_bins << "\t"
-        << current_ref.cov.none_zero_bin_count() << "\t"
-        << current_ref.uniq_cov.none_zero_bin_count() << "\t"
-        << current_ref.uniq_cov2.none_zero_bin_count() << "\t"
+                        << current_ref.cov.number_of_bins << "\t"
+                        << current_ref.cov.none_zero_bin_count() << "\t"
+                        << current_ref.uniq_cov.none_zero_bin_count() << "\t"
+                        << current_ref.uniq_cov2.none_zero_bin_count() << "\t"
 
 
-        << current_ref.cov_depth() << "\t"
+                        << current_ref.cov_depth() << "\t"
 
-        << current_ref.uniq_cov_depth() << "\t"
-        << current_ref.uniq_cov_depth2() << "\t"
+                        << current_ref.uniq_cov_depth() << "\t"
+                        << current_ref.uniq_cov_depth2() << "\t"
 
-        << "NA"<< "\t"
-        << current_ref.cov_percent() << "\t"
-        << current_ref.uniq_cov_percent() << "\t"
-        << current_ref.uniq_cov_percent2() << "\n";
+                        << "NA"<< "\t"
+                        << current_ref.cov_percent() << "\t"
+                        << current_ref.uniq_cov_percent() << "\t"
+                        << current_ref.uniq_cov_percent2() << "\n";
     }
     features_file.close();
 }
-
-
 
 
 inline int get_taxonomic_profile(arg_options & options)
