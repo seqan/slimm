@@ -192,6 +192,29 @@ inline bool get_batch_mappings_ac__taxid(std::unordered_map<std::string, uint32_
     }
     return (lines_count!=0);
 }
+
+// --------------------------------------------------------------------------
+// Function print_missed_accessions()
+// --------------------------------------------------------------------------
+inline void print_missed_accessions(std::set<std::string> & accessions,
+                                    arg_options const & options)
+{
+    uint32_t count = 4;
+    uint32_t dot_pos = options.output_path.size() - 4;
+    std::string missed_acc_path = options.output_path.substr(0, dot_pos) + "missed";
+    std::ofstream missed_acc_stream(missed_acc_path);
+
+    std::cerr <<"[WARNING!] "<< accessions.size() <<" accessions were not mapped to taxaid.\n";
+    for(auto ac_it=accessions.begin(); count > 0 && ac_it != accessions.end(); --count, ++ac_it)
+    std::cerr <<"\t\t\t" << *ac_it << "\n";
+
+    for(auto ac_it=accessions.begin(); ac_it != accessions.end(); ++ac_it)
+    missed_acc_stream << *ac_it << "\n";
+    missed_acc_stream.close();
+
+    std::cerr <<"Take a look at "<< missed_acc_path << " file for a complete list.\n";
+    std::cerr <<"Try including the more ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
+}
 // --------------------------------------------------------------------------
 // Function get_taxid_from_accession()
 // --------------------------------------------------------------------------
@@ -199,6 +222,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
                                      std::set<std::string> & accessions,
                                      arg_options const & options)
 {
+
     std::cerr <<"[MSG] mapping accessions to taxaid ...\n";
     uint32_t accessions_count = accessions.size();
     uint32_t map_file_number  = 1;
@@ -247,12 +271,8 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
     }
 
     // some accessions are still not mapped
-    std::cerr <<"[WARNING!] The following accessions were not mapped to taxaid.\n";
-    for(auto ac_it=accessions.begin(); ac_it != accessions.end(); ++ac_it)
-    {
-        std::cerr << *ac_it << ", ";
-    }
-    std::cerr <<"\nTry including the dead ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
+    if(accessions.size() > 0)
+        print_missed_accessions(accessions, options);
 }
 
 // --------------------------------------------------------------------------
