@@ -199,21 +199,22 @@ inline bool get_batch_mappings_ac__taxid(std::unordered_map<std::string, uint32_
 inline void print_missed_accessions(std::set<std::string> & accessions,
                                     arg_options const & options)
 {
-    uint32_t count = 4;
+    uint32_t count = 3;
     uint32_t dot_pos = options.output_path.size() - 4;
     std::string missed_acc_path = options.output_path.substr(0, dot_pos) + "missed";
     std::ofstream missed_acc_stream(missed_acc_path);
 
-    std::cerr <<"[WARNING!] "<< accessions.size() <<" accessions were not mapped to taxaid.\n";
+    std::cerr <<"[WARNING!] "<< accessions.size() <<" accessions (";
     for(auto ac_it=accessions.begin(); count > 0 && ac_it != accessions.end(); --count, ++ac_it)
-    std::cerr <<"\t\t\t" << *ac_it << "\n";
+        std::cerr << *ac_it << ", ";
+    std::cerr <<"...) were not mapped to taxaid.\n";
 
     for(auto ac_it=accessions.begin(); ac_it != accessions.end(); ++ac_it)
-    missed_acc_stream << *ac_it << "\n";
+        missed_acc_stream << *ac_it << "\n";
     missed_acc_stream.close();
 
-    std::cerr <<"Take a look at "<< missed_acc_path << " file for a complete list.\n";
-    std::cerr <<"Try including the more ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
+    std::cerr <<"[WARNING!] Take a look at "<< missed_acc_path << " file for a complete list.\n";
+    std::cerr <<"[WARNING!] Try including the more ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
 }
 // --------------------------------------------------------------------------
 // Function get_taxid_from_accession()
