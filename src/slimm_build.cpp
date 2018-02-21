@@ -150,7 +150,7 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
 inline void get_accession_numbers(std::set<std::string> & accessions, arg_options const & options)
 {
     std::cerr <<"[MSG] getting accessions numbers from fasta file ...\n";
-    std::string id;
+    CharString id;
     IupacString seq;
 
     SeqFileIn fasta_file;
@@ -163,8 +163,7 @@ inline void get_accession_numbers(std::set<std::string> & accessions, arg_option
     while(!atEnd(fasta_file))
     {
         readRecord(id, seq, fasta_file);
-        auto pos = id.find(' ', 0);
-        accessions.insert(id.substr(0, pos));
+        accessions.insert(get_accession_id(id));
     }
     close(fasta_file);
 }
@@ -178,13 +177,13 @@ inline bool get_batch_mappings_ac__taxid(std::unordered_map<std::string, uint32_
 {
     ac__taxid_map.clear();
     uint32_t taxid = 0, lines_count = 0;
-    std::string ac, line;
+    std::string ac, line, ignore;
 
     while(std::getline(ac__taxid_stream, line))
     {
         std::stringstream   linestream(line);
-        std::getline(linestream, ac, '\t'); //skip the first column
-        std::getline(linestream, ac, '\t'); //second column is accesion with version
+        std::getline(linestream, ac, '\t'); // first column is accesion
+        std::getline(linestream, ignore, '\t'); // skip the second column (accesion with version)
         linestream >> taxid;// third column is taxid
         ac__taxid_map[ac]=taxid;
         lines_count++;
