@@ -150,7 +150,7 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
 inline void get_accession_numbers(std::set<std::string> & accessions, arg_options const & options)
 {
     std::cerr <<"[MSG] getting accessions numbers from fasta file ...\n";
-    std::string id;
+    CharString id;
     IupacString seq;
 
     SeqFileIn fasta_file;
@@ -163,8 +163,7 @@ inline void get_accession_numbers(std::set<std::string> & accessions, arg_option
     while(!atEnd(fasta_file))
     {
         readRecord(id, seq, fasta_file);
-        auto pos = id.find(' ', 0);
-        accessions.insert(id.substr(0, pos));
+        accessions.insert(get_accession_id(id));
     }
     close(fasta_file);
 }
@@ -178,13 +177,13 @@ inline bool get_batch_mappings_ac__taxid(std::unordered_map<std::string, uint32_
 {
     ac__taxid_map.clear();
     uint32_t taxid = 0, lines_count = 0;
-    std::string ac, line;
+    std::string ac, line, ignore;
 
     while(std::getline(ac__taxid_stream, line))
     {
         std::stringstream   linestream(line);
-        std::getline(linestream, ac, '\t'); //skip the first column
-        std::getline(linestream, ac, '\t'); //second column is accesion with version
+        std::getline(linestream, ac, '\t'); // first column is accesion
+        std::getline(linestream, ignore, '\t'); // skip the second column (accesion with version)
         linestream >> taxid;// third column is taxid
         ac__taxid_map[ac]=taxid;
         lines_count++;
@@ -193,6 +192,30 @@ inline bool get_batch_mappings_ac__taxid(std::unordered_map<std::string, uint32_
     }
     return (lines_count!=0);
 }
+
+// --------------------------------------------------------------------------
+// Function print_missed_accessions()
+// --------------------------------------------------------------------------
+inline void print_missed_accessions(std::set<std::string> & accessions,
+                                    arg_options const & options)
+{
+    uint32_t count = 3;
+    uint32_t dot_pos = options.output_path.size() - 4;
+    std::string missed_acc_path = options.output_path.substr(0, dot_pos) + "missed";
+    std::ofstream missed_acc_stream(missed_acc_path);
+
+    std::cerr <<"[WARNING!] "<< accessions.size() <<" accessions (";
+    for(auto ac_it=accessions.begin(); count > 0 && ac_it != accessions.end(); --count, ++ac_it)
+        std::cerr << *ac_it << ", ";
+    std::cerr <<"...) were not mapped to taxaid.\n";
+
+    for(auto ac_it=accessions.begin(); ac_it != accessions.end(); ++ac_it)
+        missed_acc_stream << *ac_it << "\n";
+    missed_acc_stream.close();
+
+    std::cerr <<"[WARNING!] Take a look at "<< missed_acc_path << " file for a complete list.\n";
+    std::cerr <<"[WARNING!] Try including the more ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
+}
 // --------------------------------------------------------------------------
 // Function get_taxid_from_accession()
 // --------------------------------------------------------------------------
@@ -200,6 +223,7 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
                                      std::set<std::string> & accessions,
                                      arg_options const & options)
 {
+
     std::cerr <<"[MSG] mapping accessions to taxaid ...\n";
     uint32_t accessions_count = accessions.size();
     uint32_t map_file_number  = 1;
@@ -248,12 +272,8 @@ inline void get_taxid_from_accession(slimm_database & slimm_db,
     }
 
     // some accessions are still not mapped
-    std::cerr <<"[WARNING!] The following accessions were not mapped to taxaid.\n";
-    for(auto ac_it=accessions.begin(); ac_it != accessions.end(); ++ac_it)
-    {
-        std::cerr << *ac_it << ", ";
-    }
-    std::cerr <<"\nTry including the dead ACCESSION2TAXAID MAP FILE (e.g. dead_nucl.accession2taxid)\n";
+    if(accessions.size() > 0)
+        print_missed_accessions(accessions, options);
 }
 
 // --------------------------------------------------------------------------
