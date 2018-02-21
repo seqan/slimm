@@ -331,26 +331,29 @@ std::string get_directory (const std::string& str)
     return str.substr(0,found);
 }
 
-std::string get_tsv_file_name (const std::string & oPrefix, const std::string& inpfName)
+std::string get_tsv_file_name(const std::string & output_prefix, const std::string& input_path)
 {
-    std::string result = get_directory(oPrefix);
-    result.append("/");
-    if (length(get_file_name(oPrefix)) > 0)
-        result.append(get_file_name(oPrefix));
-    else
-        result.append(get_file_name(inpfName));
-    if ((result.find(".sam") != std::string::npos && result.find(".sam") == result.find_last_of(".")) ||
-        (result.find(".bam") != std::string::npos && result.find(".bam")  == result.find_last_of(".")))
-        result.replace((result.find_last_of(".")), 4, "");
-    result.append(".tsv");
-    return result;
+    std::string dir_name = get_directory(output_prefix);
+    std::string file_name = get_file_name(output_prefix);
+    if (file_name.size() == 0)
+    {
+        file_name = get_file_name(input_path);
+
+        if ((file_name.find(".sam") != std::string::npos &&
+             file_name.find(".sam") == file_name.find_last_of("."))
+            ||
+            (file_name.find(".bam") != std::string::npos &&
+             file_name.find(".bam")  == file_name.find_last_of(".")))
+        {
+            file_name.replace((file_name.find_last_of(".")), 4, "");
+        }
+    }
+    return dir_name + "/" + file_name;
 }
 
-std::string get_tsv_file_name (const std::string& oPrefix, const std::string& inpfName, const std::string& rank)
+std::string get_tsv_file_name (const std::string& output_prefix, const std::string& input_path, const std::string& decor_suffix)
 {
-    std::string fName = get_tsv_file_name(oPrefix, inpfName);
-    std::string sfx = "_" + rank + "_reported";
-    return fName.insert(fName.size()-4, sfx);
+    return get_tsv_file_name(output_prefix, input_path) + decor_suffix + ".tsv";
 }
 
 
