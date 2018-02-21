@@ -400,7 +400,7 @@ inline void slimm::get_profiles()
 
         for (uint32_t i=0; i < references_count; ++i)
         {
-            std::string accession(toCString(contig_names[i]));
+            std::string accession = get_accession_id(contig_names[i]);
             uint32_t taxa_id = 0;
             auto ac_pos = db.ac__taxid.find(accession);
             if(ac_pos != db.ac__taxid.end())

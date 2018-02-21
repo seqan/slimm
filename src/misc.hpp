@@ -427,6 +427,16 @@ uint32_t getLCA(std::set<uint32_t> const & taxon_ids, std::set<uint32_t> const &
     return *(parents.begin());
 }
 
+std::string get_accession_id(CharString const & sequence_name)
+{
+    typedef OrFunctor<IsWhitespace, EqualsChar<'|'> >  IsSeqNameDelim;
+    StringSet <CharString> chunks;
+    strSplit(chunks, sequence_name, IsSeqNameDelim());
+    std::string result = toCString(chunks[0]);
+    return result;
+}
+
+
 bool get_taxon_id(uint32_t &idPosition, CharString accession, std::string idType)
 {
     StringSet <CharString> chunks;
