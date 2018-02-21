@@ -119,7 +119,6 @@ public:
     std::set<uint32_t>                                  valid_ref_ids;
     std::vector<taxa_ranks>                             considered_ranks;
     std::vector<reference_contig>                       references;
-    std::unordered_map<uint32_t, float>                 taxon_id__abundance;
     std::unordered_map<std::string, read_stat>          reads;
     std::unordered_map<uint32_t, uint32_t>              taxon_id__read_count;
     std::unordered_map<uint32_t, std::set<uint32_t> >   taxon_id__children;
@@ -142,6 +141,7 @@ public:
     inline float    uniq_coverage_cut_off();
     inline void     write_raw_stat();
     inline void     write_abundance();
+    inline void     reset();
     inline uint32_t get_lca(std::set<uint32_t> const & ref_ids);
 
 private:
@@ -157,6 +157,29 @@ private:
     inline void get_considered_ranks();
     inline void load_taxonomic_info();
 };
+
+inline void slimm::reset()
+{
+    avg_read_length           = 0;
+    matched_ref_length        = 0;
+    reference_count           = 0;
+    failed_by_min_read        = 0;
+    failed_by_min_uniq_read   = 0;
+    failed_byCov              = 0;
+    failed_byUniqCov          = 0;
+    hits_count                = 0;
+    uniq_hits_count           = 0;
+    matches_count             = 0;
+    uniq_matches_count        = 0;
+    uniq_matches_count2       = 0;
+
+    valid_ref_ids.clear();
+    references.clear();
+    reads.clear();
+    taxon_id__read_count.clear();
+    taxon_id__children.clear();
+
+}
 
 
 inline void slimm::analyze_alignments(BamFileIn & bam_file)
@@ -810,6 +833,7 @@ inline int get_taxonomic_profile(arg_options & options)
     slimm slimm1(options);
     for (uint32_t n=0; n < slimm1.number_of_files; ++n)
     {
+        slimm1.reset();
         slimm1.current_file_index = n;
         slimm1.get_profiles();
         total_hits_count += slimm1.hits_count;
