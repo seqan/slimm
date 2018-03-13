@@ -87,12 +87,19 @@ void setupArgumentParser(ArgumentParser & parser, arg_options const & options)
     setDefaultValue(parser, "bin-width", options.bin_width);
     setDefaultValue(parser, "min-reads", options.min_reads);
 
-    addOption(parser, ArgParseOption("c", "cov-cutoff", "the quantile of coverages to use as a cutoff smaller value means bigger threshold.",
+    addOption(parser, ArgParseOption("cc", "cov-cut-off", "the quantile of coverages to use as a cutoff smaller value means bigger threshold.",
                                      ArgParseArgument::DOUBLE, "DOUBLE"));
 
-    setMinValue(parser, "cov-cutoff", "0.0");
-    setMaxValue(parser, "cov-cutoff", "1.0");
-    setDefaultValue(parser, "cov-cutoff", options.cov_cut_off);
+    setMinValue(parser, "cov-cut-off", "0.0");
+    setMaxValue(parser, "cov-cut-off", "1.0");
+    setDefaultValue(parser, "cov-cut-off", options.cov_cut_off);
+
+    addOption(parser, ArgParseOption("ac", "abundance-cut-off", "do not report abundances below this value",
+                                     ArgParseArgument::DOUBLE, "DOUBLE"));
+    setMinValue(parser, "abundance-cut-off", "0.0");
+    setMaxValue(parser, "abundance-cut-off", "10.0");
+    setDefaultValue(parser, "abundance-cut-off", options.abundance_cut_off);
+
 
     addOption(parser,
               ArgParseOption("d", "directory", "Input is a directory."));
@@ -104,16 +111,15 @@ void setupArgumentParser(ArgumentParser & parser, arg_options const & options)
     // Add Examples Section.
     addTextSection(parser, "Examples");
 
-
     addListItem(parser,
-                "\\fBslimm\\fP \\fB-m\\fP \\fIslimmDB-5K\\fP \\fB-o\\fP "
-                "\\fIslimm_reports/\\fP \\fIexample.bam\\fP",
+                "\\fBslimm\\fP \\fB-o\\fP "
+                "\\fIslimm_reports/\\fP \\fIslimm_db_5K.sldb\\fP \\fIexample.bam\\fP",
                 "get taxonomic profile from \"\\fIexample.bam\\fP\" "
                 "and write it to a tsv file under \"\\fIslimm_reports/\\fP\" directory.");
 
     addListItem(parser,
-                "\\fBslimm\\fP \\fB-d -m\\fP \\fIslimmDB-5K\\fP \\fB-o\\fP "
-                "\\fIslimm_reports/\\fP \\fIexample-dir/\\fP",
+                "\\fBslimm\\fP \\fB-d\\fP \\fB-o\\fP "
+                "\\fIslimm_reports/\\fP \\fIslimm_db_5K.sldb\\fP \\fIexample-dir/\\fP",
                 "get taxonomic profiles from individual SAM/BAM files "
                 "located under \"\\fIexample-dir/\\fP\" and write them to tsv files "
                 "under \"\\fIslimm_reports/\\fP\" directory with their corsponding file names.");
@@ -140,8 +146,11 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
     if (isSet(parser, "rank"))
         getOptionValue(options.rank, parser, "rank");
 
-    if (isSet(parser, "cov-cutoff"))
-        getOptionValue(options.cov_cut_off, parser, "cov-cutoff");
+    if (isSet(parser, "cov-cut-off"))
+        getOptionValue(options.cov_cut_off, parser, "cov-cut-off");
+
+    if (isSet(parser, "abundance-cut-off"))
+        getOptionValue(options.abundance_cut_off, parser, "abundance-cut-off");
 
     if (isSet(parser, "verbose"))
         getOptionValue(options.verbose, parser, "verbose");

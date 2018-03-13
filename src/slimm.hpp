@@ -51,6 +51,7 @@ struct arg_options
     typedef std::vector<std::string>            TList;
 
     TList rankList = {"all",
+                      "strains",
                       "species",
                       "genus",
                       "family",
@@ -60,6 +61,7 @@ struct arg_options
                       "superkingdom"};
 
     float               cov_cut_off;
+    float               abundance_cut_off;
     uint32_t            bin_width;
     uint32_t            min_reads;
     bool                verbose;
@@ -70,7 +72,8 @@ struct arg_options
     std::string         output_prefix;
     std::string         database_path;
 
-    arg_options() : cov_cut_off(0.99),
+    arg_options() : cov_cut_off(0.95),
+                    abundance_cut_off(0.01),
                     bin_width(0),
                     min_reads(0),
                     verbose(false),
@@ -482,8 +485,8 @@ inline void slimm::get_considered_ranks()
 {
     if(options.rank == "all")
     {
-        for(uint32_t i=1; i<8; ++i)
-            considered_ranks.push_back(static_cast<taxa_ranks>(i));
+        for(uint32_t i=8; i>0; --i)
+            considered_ranks.push_back(static_cast<taxa_ranks>(i-1));
     }
     else
     {
@@ -674,41 +677,25 @@ float slimm::uniq_coverage_cut_off()
 
 inline void slimm::write_abundance()
 {
-    // calculate the total number of reads matching uniquily at that species level.
-    std::map<taxa_ranks, uint32_t>  read_count_at_rank = {  {strain_lv, 0},
-                                                            {species_lv, 0},
-                                                            {genus_lv, 0},
-                                                            {family_lv, 0},
-                                                            {order_lv, 0},
-                                                            {class_lv, 0},
-                                                            {phylum_lv, 0},
-                                                            {superkingdom_lv, 0}};
-
-    for (auto t_id : taxon_id__read_count)
-    {
-        if (read_count_at_rank.find(std::get<0>(db.taxid__name[t_id.first])) != read_count_at_rank.end() )
-        {
-            read_count_at_rank[std::get<0>(db.taxid__name[t_id.first])] +=  t_id.second ;     // found
-        }
-    }
-
     std::string abundunce_tsv_path = get_tsv_file_name(toCString(options.output_prefix), current_bam_file_path(), "_profile");
     std::ofstream abundunce_stream(abundunce_tsv_path);
-    abundunce_stream << "taxa_level\ttaxa_id\tlinage\tabundance\tread_count\tchildren_count\n";
+    abundunce_stream << "taxa_level\ttaxa_id\tlinage\tname\tabundance\tread_count\tchildren_count\n";
 
     for (taxa_ranks rank : considered_ranks)
     {
-        uint32_t unknown_reads_count = matches_count - read_count_at_rank[rank];
+        uint32_t sum_reads_count = 0.0;
         uint32_t count = 0;
         uint32_t faild_count = 0;
-        float faild_abundunce = 0.0;
+        float sum_abundunce = 0.0;
         std::unordered_map <uint32_t, float> clade_cov;
         std::unordered_map <uint32_t, float> clade_abundance;
         count = 1;
 
         for (auto t_id : taxon_id__read_count)
         {
-            if (rank == std::get<0>(db.taxid__name[t_id.first]))
+            //resolve taxonomic linage
+
+            if (rank == std::get<0>(db.taxid__name[t_id.first]) || (rank == strain_lv && species_lv == std::get<0>(db.taxid__name[t_id.first])))
             {
                 std::set<uint32_t>::iterator it;
                 uint32_t genome_Length = 0;
@@ -725,38 +712,58 @@ inline void slimm::write_abundance()
 
                 float abundance = float(t_id.second)/(matches_count) * 100;
 
-                if (abundance == 0.001 || cov < coverage_cut_off())
+                if (abundance < options.abundance_cut_off || cov < coverage_cut_off())
                 {
-                    faild_abundunce += abundance;
                     ++faild_count;
                     continue;
                 }
 
                 std::vector<uint32_t> linage = db.ac__taxid[last_child_acc];
                 std::string linage_str = "";
-                for (uint32_t i=LINAGE_LENGTH-1; i >= rank; --i)
+                for (uint32_t i=LINAGE_LENGTH-1; i > rank; --i)
                 {
-                    linage_str += ">";
-                    linage_str += std::get<1>(db.taxid__name[linage[i]]);
+                    linage_str += std::to_string(linage[i]);
+                    linage_str += ",";
                 }
+                linage_str += std::to_string(linage[rank]);
 
                 std::string candidate_name = std::get<1>(db.taxid__name[t_id.first]);
                 if (candidate_name == "")
                     candidate_name = "no_name_" + from_taxa_ranks(rank);
-                abundunce_stream << from_taxa_ranks(rank) << "\t" << t_id.first << "\t" << linage_str << "\t";
-                abundunce_stream << abundance << "\t" << t_id.second << "\t" << children_count << "\n";
-                ++count;
+
+                if(rank == strain_lv && linage[0] == linage[1])
+                {
+                    candidate_name += "__";
+                    abundunce_stream << from_taxa_ranks(rank) << "\t" << t_id.first << "\t" << linage_str << "\t" << candidate_name << "\t";
+                    abundunce_stream << abundance << "\t" << t_id.second << "\t" << children_count << "\n";
+                    sum_abundunce += abundance;
+                    sum_reads_count += t_id.second;
+                    ++count;
+                }
+                else
+                {
+                    abundunce_stream << from_taxa_ranks(rank) << "\t" << t_id.first << "\t" << linage_str << "\t" << candidate_name << "\t";
+                    abundunce_stream << abundance << "\t" << t_id.second << "\t" << children_count << "\n";
+                    ++count;
+                    sum_abundunce += abundance;
+                    sum_reads_count += t_id.second;
+                }
             }
 
         }
+        std::string unknown_linage_str = "";
+        for (uint32_t i=LINAGE_LENGTH-1; i > rank; --i)
+        {
+            unknown_linage_str += "0";
+            unknown_linage_str += ",";
+        }
+        unknown_linage_str += "0";
 
-        float unknownAbundance = float(unknown_reads_count)/ matches_count * 100 + faild_abundunce;
-
-        abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << "unknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
-        abundunce_stream << unknownAbundance << "\t" << unknown_reads_count << "\t" << "0" << "\n";
+        abundunce_stream << from_taxa_ranks(rank) << "\t" << "0" << "\t" << unknown_linage_str << "\tunknown_"<< from_taxa_ranks(rank) << " (multiple)" << "\t";
+        abundunce_stream << 100.0 - sum_abundunce << "\t" << matches_count - sum_reads_count << "\t" << "0" << "\n";
         if (options.verbose)
         {
-            std::cerr << "\n" << std::setw (4) << count << std::setw (15) << from_taxa_ranks(rank) <<" ("<< faild_count <<" bellow cutoff i.e. "<< 0.001 <<")";
+            std::cerr << "\n" << std::setw (4) << count << std::setw (15) << from_taxa_ranks(rank) <<" ("<< faild_count <<" bellow cutoff i.e. "<< options.abundance_cut_off <<")";
         }
     }
     abundunce_stream.close();
@@ -811,7 +818,7 @@ inline void slimm::write_raw_stat()
                           << current_ref.cov.none_zero_bin_count() << "\t"
                           << current_ref.uniq_cov.none_zero_bin_count() << "\t"
                           << current_ref.uniq_cov2.none_zero_bin_count() << "\t"
-  
+
                           << current_ref.cov_depth() << "\t"
   
                           << current_ref.uniq_cov_depth() << "\t"
