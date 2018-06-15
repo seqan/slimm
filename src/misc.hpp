@@ -61,10 +61,26 @@ std::string from_taxa_ranks(const taxa_ranks &rnk)
     else                              return "intermidiate";
 }
 
+std::string from_taxa_ranks_short(const taxa_ranks &rnk)
+{
+    if       (rnk == strain_lv)       return "r";
+    else if  (rnk == species_lv)      return "s";
+    else if  (rnk == genus_lv)        return "g";
+    else if  (rnk == family_lv)       return "f";
+    else if  (rnk == order_lv)        return "o";
+    else if  (rnk == class_lv)        return "c";
+    else if  (rnk == phylum_lv)       return "p";
+    else if  (rnk == superkingdom_lv) return "k";
+    else                              return "i";
+}
+
 struct slimm_database
 {
 public:
+    // maps accession number to a vector of taxon ids from species to superkingdom
     std::unordered_map<std::string, std::vector<uint32_t> >             ac__taxid;
+
+    // maps taxon ids to a tuple of their rank and name
     std::unordered_map<uint32_t, std::tuple<taxa_ranks, std::string> >  taxid__name;
 
     template <class Archive>
@@ -116,6 +132,20 @@ std::unordered_map <uint32_t, std::string> load_int__string_map(std::string cons
     nameMap.close();
     return result;
 }
+
+// If key already exists in the map increment its value by val
+// If not initialize it by val
+template <typename TKey, typename TValue>
+inline void increment_or_initialize(std::unordered_map <TKey, TValue> & map, TKey const & key, TValue const & val)
+{
+    auto key_pos = map.find(key);
+    // If key already exists increment it by value
+    if(key_pos != map.end())
+        key_pos->second += val;
+    else
+        map[key] = val; //initialize it by val
+}
+
 
 TNodes load_node_maps(std::string const & filePath)
 {
