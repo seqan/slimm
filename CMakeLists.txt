@@ -41,6 +41,11 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/seqan/include/seqan/version.h")
     message (    "   This will be preferred over system global headers.")
 endif ()
 
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/cereal/include/cereal/cereal.hpp")
+    set (CEREAL_INCLUDE_DIRS 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cereal/include)
+    message (STATUS "Found a local CEREAL library provided with the SLIMM source code.")
+endif ()
 
 # ----------------------------------------------------------------------------
 # Add SLIMM targets
