@@ -3,3 +3,6 @@
 	url = https://github.com/seqan/seqan
 [submodule "seqan"]
 	branch = seqan-v2.3.1
+[submodule "include/cereal"]
+	path = include/cereal
+	url = https://github.com/USCiLab/cereal.git
