@@ -701,12 +701,6 @@ std::string slimm::get_lineage_string (taxa_ranks rank, std::vector<uint32_t> co
 
 std::string slimm::get_lineage_string (taxa_ranks rank, uint32_t const & taxa_id)
 {
-    std::string child_acc = "";
-    for (auto child : taxon_id__children.at(taxa_id))
-    {
-        child_acc = references[child].accession;
-        break;
-    }
     std::vector<uint32_t> linage;
     if(taxa_id == 0)
     {
@@ -714,6 +708,12 @@ std::string slimm::get_lineage_string (taxa_ranks rank, uint32_t const & taxa_id
     }
     else
     {
+        std::string child_acc = "";
+        for (auto child : taxon_id__children.at(taxa_id))
+        {
+            child_acc = references[child].accession;
+            break;
+        }
         linage = db.ac__taxid[child_acc];
     }
     return get_lineage_string(rank, linage);
