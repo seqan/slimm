@@ -19,7 +19,7 @@ using namespace seqan;
 
         if ((dir = FindFirstFile((directory + "/*").c_str(),
            &file_data)) == INVALID_HANDLE_VALUE)
-            return; /* No files found */
+            return input_paths; /* No files found */
 
         do
         {
@@ -34,7 +34,7 @@ using namespace seqan;
             if (is_directory)
                 continue;
 
-            if((full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
+            if(full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
                 full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
              input_paths.push_back(full_file_name);
         } while (FindNextFile(dir, &file_data));
