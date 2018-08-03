@@ -46,6 +46,7 @@
 
 #include "timer.hpp"
 #include "misc.hpp"
+#include "file_helper.hpp"
 #include "reference_contig.hpp"
 #include "read_stat.hpp"
 

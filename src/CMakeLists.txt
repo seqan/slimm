@@ -172,10 +172,12 @@ add_executable(slimm    slimm.cpp
                         timer.hpp
                         read_stat.hpp
                         reference_contig.hpp
-                        misc.hpp)
+                        misc.hpp
+                        file_helper.hpp)
 
 add_executable(slimm_build  slimm_build.cpp
-                            misc.hpp)
+                            misc.hpp
+                            file_helper.hpp)
 
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (slimm ${SEQAN_LIBRARIES})

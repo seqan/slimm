@@ -44,6 +44,7 @@
 #include <seqan/seq_io.h>
 
 #include "misc.hpp"
+#include "file_helper.hpp"
 
 using namespace seqan;
 
@@ -128,7 +129,7 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
     options.ac__taxid_paths.resize(acc__taxaid_count);
 
     for (uint32_t i = 0; i < acc__taxaid_count; ++i)
-        getArgumentValue(options.ac__taxid_paths[i], parser, 1, i);    
+        getArgumentValue(options.ac__taxid_paths[i], parser, 1, i);
 
     getOptionValue(options.names_path, parser, "names");
     getOptionValue(options.nodes_path, parser, "nodes");
