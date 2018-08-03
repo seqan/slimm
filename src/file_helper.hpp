@@ -7,58 +7,83 @@ using namespace seqan;
 #include <map>
 #include <utility>
 
-// ==========================================================================
-// Classes
-// ==========================================================================
-
 #ifdef _WIN32
+    #include <io.h>
+    #define access    _access_s
 
-std::vector<std::string> get_bam_files_in_directory(std::string directory)
-{
-    std::vector<std::string>  input_paths;
-    HANDLE dir;
-    WIN32_FIND_DATA file_data;
-
-    if ((dir = FindFirstFile((directory + "/*").c_str(),
-                             &file_data)) == INVALID_HANDLE_VALUE)
-        return; /* No files found */
-
-    do
+    std::vector<std::string> get_bam_files_in_directory(std::string directory)
     {
-        const std::string file_name = file_data.cFileName;
-        const std::string full_file_name = directory + "/" + file_name;
-        const bool is_directory =
+        std::vector<std::string>  input_paths;
+        HANDLE dir;
+        WIN32_FIND_DATA file_data;
+
+        if ((dir = FindFirstFile((directory + "/*").c_str(),
+           &file_data)) == INVALID_HANDLE_VALUE)
+            return; /* No files found */
+
+        do
+        {
+            const std::string file_name = file_data.cFileName;
+            const std::string full_file_name = directory + "/" + file_name;
+            const bool is_directory =
             (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 
-        if (file_name[0] == '.')
-            continue;
+            if (file_name[0] == '.')
+                continue;
 
-        if (is_directory)
-            continue;
+            if (is_directory)
+                continue;
 
-        if((full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
-        full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
-           input_paths.push_back(full_file_name);
-    } while (FindNextFile(dir, &file_data));
+            if((full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
+                full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
+             input_paths.push_back(full_file_name);
+        } while (FindNextFile(dir, &file_data));
 
-    FindClose(dir);
-    return input_paths;
-} // get_bam_files_in_directory
+        FindClose(dir);
+        return input_paths;
+    }
 
 #else
+    #include <unistd.h>
+    std::vector<std::string> get_bam_files_in_directory(std::string directory)
+    {
+        std::vector<std::string>  input_paths;
+        DIR *dir;
+        struct dirent *ent;
+        struct stat st;
 
-bool is_file(const char* path) {
-    struct stat buf;
-    stat(path, &buf);
-    return S_ISREG(buf.st_mode);
+        dir = opendir(directory.c_str());
+        while ((ent = readdir(dir)) != NULL)
+        {
+            const std::string file_name = ent->d_name;
+            const std::string full_file_name = directory + "/" + file_name;
+
+            if (file_name[0] == '.')
+                continue;
+
+            if (stat(full_file_name.c_str(), &st) == -1)
+                continue;
+
+            const bool is_directory = (st.st_mode & S_IFDIR) != 0;
+
+            if (is_directory)
+                continue;
+
+
+            if(full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
+               full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
+                input_paths.push_back(full_file_name);
+        }
+        closedir(dir);
+        return input_paths;
+    } // get_bam_files_in_directory
+
+#endif
+
+bool is_file(const char* path)
+{
+    return access(path, 0 ) == 0;
 }
-
-bool is_dir(const char* path) {
-    struct stat buf;
-    stat(path, &buf);
-    return S_ISDIR(buf.st_mode);
-}
-
 
 std::string get_file_name (const std::string& str)
 {
@@ -81,10 +106,10 @@ std::string get_tsv_file_name(const std::string & output_prefix, const std::stri
         file_name = get_file_name(input_path);
 
         if ((file_name.find(".sam") != std::string::npos &&
-             file_name.find(".sam") == file_name.find_last_of("."))
+           file_name.find(".sam") == file_name.find_last_of("."))
             ||
             (file_name.find(".bam") != std::string::npos &&
-             file_name.find(".bam")  == file_name.find_last_of(".")))
+               file_name.find(".bam")  == file_name.find_last_of(".")))
         {
             file_name.replace((file_name.find_last_of(".")), 4, "");
         }
@@ -96,40 +121,3 @@ std::string get_tsv_file_name (const std::string& output_prefix, const std::stri
 {
     return get_tsv_file_name(output_prefix, input_path) + decor_suffix + ".tsv";
 }
-
-
-std::vector<std::string> get_bam_files_in_directory(std::string directory)
-{
-    std::vector<std::string>  input_paths;
-    DIR *dir;
-    struct dirent *ent;
-    struct stat st;
-
-    dir = opendir(directory.c_str());
-    while ((ent = readdir(dir)) != NULL)
-    {
-        const std::string file_name = ent->d_name;
-        const std::string full_file_name = directory + "/" + file_name;
-
-        if (file_name[0] == '.')
-            continue;
-
-        if (stat(full_file_name.c_str(), &st) == -1)
-            continue;
-
-        const bool is_directory = (st.st_mode & S_IFDIR) != 0;
-
-        if (is_directory)
-            continue;
-
-
-        if(full_file_name.find(".sam") == full_file_name.find_last_of(".") ||
-        full_file_name.find(".bam")  == full_file_name.find_last_of(".") )
-            input_paths.push_back(full_file_name);
-        //appendValue(input_paths, full_file_name);
-    }
-    closedir(dir);
-    return input_paths;
-} // get_bam_files_in_directory
-#endif
-
