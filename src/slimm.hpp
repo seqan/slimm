@@ -66,6 +66,7 @@ struct arg_options
     bool                verbose;
     bool                is_directory;
     bool                raw_output;
+    bool                coverage_output;
     std::string         rank;
     std::string         input_path;
     std::string         output_prefix;
@@ -78,6 +79,7 @@ struct arg_options
                     verbose(false),
                     is_directory(false),
                     raw_output(false),
+                    coverage_output(false),
                     rank("species"),
                     input_path(""),
                     output_prefix(""),
@@ -141,6 +143,7 @@ public:
     inline void     print_matches_stat();
     inline float    uniq_coverage_cut_off();
     inline void     write_raw_stat();
+    inline void     write_coverage();
     inline void     write_abundance();
     inline void     reset();
     inline uint32_t get_lca(std::set<uint32_t> const & ref_ids);
@@ -468,6 +471,13 @@ inline void slimm::get_profiles()
         {
             std::cerr<<"Writing features to a file ....................... ";
             write_raw_stat();
+            std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
+        }
+
+        if (options.coverage_output)
+        {
+            std::cerr<<"Writing coverage profiles to a file ....................... ";
+            write_coverage();
             std::cerr<<"[" << stop_watch.lap() <<" secs]"  << std::endl;
         }
 
@@ -830,6 +840,39 @@ inline void slimm::write_abundance()
     }
 
     abundunce_stream.close();
+}
+
+
+inline void slimm::write_coverage()
+{
+    std::string coverge_csv_path = get_tsv_file_name(options.output_prefix, current_bam_file_path(), "_coverge");
+    std::string uniq_coverge_csv_path = get_tsv_file_name(options.output_prefix, current_bam_file_path(), "_uniq_coverge");
+    std::string uniq_coverge2_csv_path = get_tsv_file_name(options.output_prefix, current_bam_file_path(), "_uniq_coverge2");
+
+    std::ofstream coverge_stream(coverge_csv_path);
+    std::ofstream uniq_coverge_stream(uniq_coverge_csv_path);
+    std::ofstream uniq_coverge2_stream(uniq_coverge2_csv_path);
+
+
+    for (auto valid_id : valid_ref_ids)
+    {
+        reference_contig current_ref = references[valid_id];
+        coverge_stream  << current_ref.accession;
+        uniq_coverge_stream  << current_ref.accession;
+        uniq_coverge2_stream  << current_ref.accession;
+        for (uint32_t b=0; b < current_ref.cov.number_of_bins; ++b)
+        {
+            coverge_stream  << "," << current_ref.cov.bins_height[b];
+            uniq_coverge_stream  << "," << current_ref.uniq_cov.bins_height[b];
+            uniq_coverge2_stream  << "," << current_ref.uniq_cov2.bins_height[b];
+        }
+        coverge_stream  << "\n" ;
+        uniq_coverge_stream  << "\n";
+        uniq_coverge2_stream  << "\n";
+    }
+    coverge_stream.close();
+    uniq_coverge_stream.close();
+    uniq_coverge2_stream.close();
 }
 
 inline void slimm::write_raw_stat()

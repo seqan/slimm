@@ -13,7 +13,7 @@
 # change this after every release
 set (SEQAN_APP_VERSION_MAJOR "0")
 set (SEQAN_APP_VERSION_MINOR "3")
-set (SEQAN_APP_VERSION_PATCH "3")
+set (SEQAN_APP_VERSION_PATCH "4")
 
 # don't change the following
 set (SEQAN_APP_VERSION "${SEQAN_APP_VERSION_MAJOR}.${SEQAN_APP_VERSION_MINOR}.${SEQAN_APP_VERSION_PATCH}")
@@ -172,10 +172,12 @@ add_executable(slimm    slimm.cpp
                         timer.hpp
                         read_stat.hpp
                         reference_contig.hpp
-                        misc.hpp)
+                        misc.hpp
+                        file_helper.hpp)
 
 add_executable(slimm_build  slimm_build.cpp
-                            misc.hpp)
+                            misc.hpp
+                            file_helper.hpp)
 
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (slimm ${SEQAN_LIBRARIES})
