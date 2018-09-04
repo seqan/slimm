@@ -106,6 +106,10 @@ void setupArgumentParser(ArgumentParser & parser, arg_options const & options)
               ArgParseOption("d", "directory", "Input is a directory."));
     addOption(parser,
               ArgParseOption("ro", "raw-output", "Output raw reference statstics"));
+
+    addOption(parser,
+              ArgParseOption("co", "coverage-output", "Output raw coverage statstics"));
+
     addOption(parser,
               ArgParseOption("v", "verbose", "Enable verbose output."));
 
@@ -161,6 +165,9 @@ parseCommandLine(ArgumentParser & parser, arg_options & options, int argc, char 
 
     if (isSet(parser, "raw-output"))
         options.raw_output = true;
+
+    if (isSet(parser, "coverage-output"))
+        options.coverage_output = true;
 
     getArgumentValue(options.database_path, parser, 0);
     getArgumentValue(options.input_path, parser, 1);
